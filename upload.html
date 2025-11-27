@@ -4,23 +4,89 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Log In to StatTube</title>
+    
+    <!-- LOAD INTER FONT FROM GOOGLE FONTS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!--
+        IMPORTANT NOTE ABOUT CORS ERRORS:
+        The "Access to fetch has been blocked by CORS policy" error CANNOT be fixed within this HTML file.
+        It is a SERVER-SIDE issue. You must configure your server at 'api.stat-tube.com' (or the service
+        in front of it, like Cloudflare) to send the correct 'Access-Control-Allow-Origin' header.
+        This code is correct and will work once the server is configured properly.
+    -->
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f8f9fa; color: #495057; }
+        /* UPDATED: Font-family is now exclusively 'Inter' */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            margin: 0; 
+            background-color: #f8f9fa; 
+            color: #495057; 
+        }
+        
         .section-wrapper { background-color: #ffffff; }
         .content-container { max-width: 840px; margin: 0 auto; padding: 1.5rem 2rem; }
         .header-content { display: flex; justify-content: space-between; align-items: center; }
         .section-divider { border: none; height: 1px; background-color: #e9ecef; margin: 0; }
-        .logo { font-size: 3rem; font-weight: bold; color: #0d6efd; }
-        .profile-pic { width: 40px; height: 40px; border-radius: 50%; background-color: #212529; }
+        .logo { height: 48px; width: auto; }
+        .profile-pic { width: 40px; height: 40px; border-radius: 50%; background-color: #212529; object-fit: cover; }
         h2 { color: #0d6efd; font-size: 2rem; font-weight: 700; margin-top: 0; margin-bottom: 0.5rem; }
         h3 { font-size: 1.5rem; font-weight: 700; margin-top: 0; margin-bottom: 0.5rem; color: #212529; }
         p { font-size: 1.1rem; line-height: 1.6; margin-top: 0; margin-bottom: 1.5rem; }
         .sub-text { font-size: 1.2rem; color: #6c757d; }
         .button-group { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
-        .connect-button { font-size: 1rem; font-weight: bold; color: #fff; background: linear-gradient(135deg, #0d6efd, #0b5ed7); border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; }
-        .connect-button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); }
+        
+        /* --- BUTTON STYLES WITH COOLDOWN --- */
+        .connect-button { 
+            font-family: 'Inter', sans-serif; /* Explicitly ensure buttons use Inter */
+            font-size: 1rem; 
+            font-weight: 700; /* Made slightly bolder for Inter */
+            color: #fff; 
+            background: linear-gradient(135deg, #0d6efd, #0b5ed7); 
+            border: none; 
+            padding: 0.8rem 1.5rem; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative; 
+            overflow: hidden; 
+            z-index: 1;
+        }
+
+        .connect-button:hover:not(:disabled):not(.in-cooldown) { 
+            transform: translateY(-2px); 
+            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); 
+        }
+        
         .connect-button:disabled { background: #6c757d; cursor: not-allowed; }
-        .logout-button { background: #6c757d; border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; }
+
+        /* The Progress Bar Layer */
+        .connect-button::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 5px;
+            width: 0%;
+            background-color: rgba(255, 255, 255, 0.8);
+            z-index: 2;
+            transition: none;
+        }
+
+        /* Logic for when cooldown is active */
+        .connect-button.in-cooldown {
+            cursor: not-allowed;
+        }
+
+        .connect-button.in-cooldown::after {
+            width: 100%;
+            transition: width 1s linear;
+        }
+        /* ----------------------------------- */
+
+        .logout-button { background: #6c757d; border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; font-family: 'Inter', sans-serif; }
         #connect-instructions { margin-top: 2rem; border-top: 1px solid #e9ecef; padding-top: 2rem; }
         #connect-command { background-color: #e9ecef; padding: 1.2rem; border-radius: 5px; font-family: monospace; font-size: 1.2rem; color: #dc3545; text-align: center; }
         #publish-status { margin-top: 1rem; font-weight: 600; }
@@ -31,8 +97,7 @@
 
     <header class="section-wrapper">
         <div class="content-container header-content">
-            <div class="logo">S</div>
-            <div class="profile-pic" id="profile-pic"></div>
+            <img src="./stm.png" alt="StatTube Logo" class="logo">
         </div>
     </header>
 
@@ -52,7 +117,7 @@
             </div>
             
             <div id="logged-in-view" style="display:none;">
-                <h2>Control Panel</h2>
+                <h2>Upload</h2>
                 <p class="sub-text">You are logged in. You can now publish commands.</p>
                 <div class="button-group">
                     <button class="connect-button" id="publish-video-button">Publish !video</button>
@@ -68,7 +133,7 @@
     </main>
     
     <hr class="section-divider">
-
+    
     <section class="section-wrapper">
         <div class="content-container">
             <h3>What even is StatTube?</h3>
@@ -103,88 +168,66 @@
         let pollingInterval = null;
 
         // --- Core Functions ---
-        function checkLoginStatus() { /* ... unchanged ... */ }
-        function showLoggedInView() { /* ... unchanged ... */ }
-        function showLoggedOutView() { /* ... unchanged ... */ }
-        function logout() { /* ... unchanged ... */ }
+        function checkLoginStatus() {
+            if (localStorage.getItem('userApiKey')) {
+                showLoggedInView();
+            } else {
+                showLoggedOutView();
+            }
+        }
+        function showLoggedInView() { loggedOutView.style.display = 'none'; loggedInView.style.display = 'block'; }
+        function showLoggedOutView() { loggedInView.style.display = 'none'; loggedOutView.style.display = 'block'; }
+        function logout() { localStorage.clear(); if (pollingInterval) clearInterval(pollingInterval); checkLoginStatus(); }
+        
+        async function publishCommand(commandType, commandName, btnElement) {
+            // 1. Check if button is in cooldown. If yes, stop immediately.
+            if (btnElement.classList.contains('in-cooldown')) {
+                return;
+            }
 
-        // --- Reusable function to publish to a specific URL path ---
-        async function publishCommand(commandType, commandName) {
             const userApiKey = localStorage.getItem('userApiKey');
             if (!userApiKey) { alert('You are not logged in!'); return; }
-            publishStatus.textContent = `Publishing ${commandName}...`;
-            try {
-                const response = await fetch(`${API_URL}/publish/${commandType}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userApiKey: userApiKey })
-                });
-                const result = await response.json();
-                if (!response.ok) throw new Error(result.details?.error || result.error || 'Unknown error');
-                publishStatus.textContent = `Success! ${result.message}`;
-            } catch (error) {
-                 publishStatus.textContent = `Error: ${error.message}`;
-            }
+            
+            // 2. Start Cooldown: Add class to trigger animation and disable clicks
+            btnElement.classList.add('in-cooldown');
+            
+            // 3. Set timer to remove cooldown after 1 second
+            setTimeout(() => {
+                btnElement.classList.remove('in-cooldown');
+            }, 1000);
+
+            publishStatus.textContent = `Publishing ${commandName}...`; 
+            
+            try { 
+                const response = await fetch(`${API_URL}/publish/${commandType}`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ userApiKey: userApiKey }) 
+                }); 
+                const result = await response.json(); 
+                if (!response.ok) throw new Error(result.details?.error || result.error || 'Unknown error'); 
+                publishStatus.textContent = `Success! ${result.message}`; 
+            } catch (error) { 
+                publishStatus.textContent = `Error: ${error.message}`; 
+            } 
         }
         
         // --- Event Listeners ---
-        connectButton.addEventListener('click', async () => { /* ... unchanged ... */ });
-
-        // Event listeners call the new function with the URL path and display name
-        publishVideoButton.addEventListener('click', () => publishCommand('video', '!video'));
-        publishShortButton.addEventListener('click', () => publishCommand('short', '!short'));
-        publishStreamButton.addEventListener('click', () => publishCommand('stream', '!stream'));
-        publishSongButton.addEventListener('click', () => publishCommand('song', '!song'));
-        publishPostButton.addEventListener('click', () => publishCommand('post', '!post'));
+        connectButton.addEventListener('click', async () => { connectButton.disabled = true; connectButton.textContent = 'Generating Code...'; try { const response = await fetch(`${API_URL}/auth/generate-code`); if (!response.ok) throw new Error('Server not available'); const data = await response.json(); localStorage.setItem('sessionToken', data.sessionToken); connectCommand.textContent = `!connect ${data.connectCode}`; connectButton.style.display = 'none'; loginSubtext.style.display = 'none'; connectInstructions.style.display = 'block'; startPollingForAuthStatus(); } catch (error) { alert('Could not connect to the API server. Please try again later.'); connectButton.disabled = false; connectButton.textContent = 'Connect Account'; } });
+        
+        publishVideoButton.addEventListener('click', () => publishCommand('video', '!video', publishVideoButton));
+        publishShortButton.addEventListener('click', () => publishCommand('short', '!short', publishShortButton));
+        publishStreamButton.addEventListener('click', () => publishCommand('stream', '!stream', publishStreamButton));
+        publishSongButton.addEventListener('click', () => publishCommand('song', '!song', publishSongButton));
+        publishPostButton.addEventListener('click', () => publishCommand('post', '!post', publishPostButton));
         
         logoutButton.addEventListener('click', logout);
 
         // --- Polling Logic ---
-        function startPollingForAuthStatus() { /* ... unchanged ... */ }
+        function startPollingForAuthStatus() { if (pollingInterval) clearInterval(pollingInterval); pollingInterval = setInterval(async () => { const sessionToken = localStorage.getItem('sessionToken'); if (!sessionToken) { clearInterval(pollingInterval); return; } try { const response = await fetch(`${API_URL}/auth/status?sessionToken=${sessionToken}`); const data = await response.json(); if (data.status === 'completed') { clearInterval(pollingInterval); localStorage.removeItem('sessionToken'); localStorage.setItem('userApiKey', data.userApiKey); alert('Account connected successfully!'); connectButton.style.display = 'inline-block'; loginSubtext.style.display = 'block'; connectButton.disabled = false; connectButton.textContent = 'Connect Account'; connectInstructions.style.display = 'none'; checkLoginStatus(); } } catch (error) { console.error('Polling error:', error); } }, 3000); }
 
         // --- Initial Load ---
         checkLoginStatus();
-
-        // --- Full function implementations for brevity ---
-        function checkLoginStatus() { if (localStorage.getItem('userApiKey')) showLoggedInView(); else showLoggedOutView(); }
-        function showLoggedInView() { loggedOutView.style.display = 'none'; loggedInView.style.display = 'block'; }
-        function showLoggedOutView() { loggedInView.style.display = 'none'; loggedOutView.style.display = 'block'; }
-        function logout() { localStorage.clear(); if (pollingInterval) clearInterval(pollingInterval); checkLoginStatus(); }
-        connectButton.addEventListener('click', async () => {
-            connectButton.disabled = true; connectButton.textContent = 'Generating Code...';
-            try {
-                const response = await fetch(`${API_URL}/auth/generate-code`);
-                if (!response.ok) throw new Error('Server not available');
-                const data = await response.json();
-                localStorage.setItem('sessionToken', data.sessionToken);
-                connectCommand.textContent = `!connect ${data.connectCode}`;
-                connectButton.style.display = 'none'; loginSubtext.style.display = 'none'; connectInstructions.style.display = 'block';
-                startPollingForAuthStatus();
-            } catch (error) {
-                alert('Could not connect to the API server. Please try again later.');
-                connectButton.disabled = false; connectButton.textContent = 'Connect Account';
-            }
-        });
-        function startPollingForAuthStatus() {
-            if (pollingInterval) clearInterval(pollingInterval);
-            pollingInterval = setInterval(async () => {
-                const sessionToken = localStorage.getItem('sessionToken');
-                if (!sessionToken) { clearInterval(pollingInterval); return; }
-                try {
-                    const response = await fetch(`${API_URL}/auth/status?sessionToken=${sessionToken}`);
-                    const data = await response.json();
-                    if (data.status === 'completed') {
-                        clearInterval(pollingInterval);
-                        localStorage.removeItem('sessionToken');
-                        localStorage.setItem('userApiKey', data.userApiKey);
-                        alert('Account connected successfully!');
-                        connectButton.style.display = 'inline-block'; loginSubtext.style.display = 'block'; connectButton.disabled = false;
-                        connectButton.textContent = 'Connect Account'; connectInstructions.style.display = 'none';
-                        checkLoginStatus();
-                    }
-                } catch (error) { console.error('Polling error:', error); }
-            }, 3000);
-        }
     </script>
 </body>
 </html>
