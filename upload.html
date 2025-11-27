@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log In to StatTube</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f8f9fa; color: #495057; }
+        .section-wrapper { background-color: #ffffff; }
+        .content-container { max-width: 840px; margin: 0 auto; padding: 1.5rem 2rem; }
+        .header-content { display: flex; justify-content: space-between; align-items: center; }
+        .section-divider { border: none; height: 1px; background-color: #e9ecef; margin: 0; }
+        .logo { font-size: 3rem; font-weight: bold; color: #0d6efd; }
+        .profile-pic { width: 40px; height: 40px; border-radius: 50%; background-color: #212529; }
+        h2 { color: #0d6efd; font-size: 2rem; font-weight: 700; margin-top: 0; margin-bottom: 0.5rem; }
+        h3 { font-size: 1.5rem; font-weight: 700; margin-top: 0; margin-bottom: 0.5rem; color: #212529; }
+        p { font-size: 1.1rem; line-height: 1.6; margin-top: 0; margin-bottom: 1.5rem; }
+        .sub-text { font-size: 1.2rem; color: #6c757d; }
+        .button-group { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
+        .connect-button { font-size: 1rem; font-weight: bold; color: #fff; background: linear-gradient(135deg, #0d6efd, #0b5ed7); border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; }
+        .connect-button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); }
+        .connect-button:disabled { background: #6c757d; cursor: not-allowed; }
+        .logout-button { background: #6c757d; border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; }
+        #connect-instructions { margin-top: 2rem; border-top: 1px solid #e9ecef; padding-top: 2rem; }
+        #connect-command { background-color: #e9ecef; padding: 1.2rem; border-radius: 5px; font-family: monospace; font-size: 1.2rem; color: #dc3545; text-align: center; }
+        #publish-status { margin-top: 1rem; font-weight: 600; }
+        .footer-content { text-align: right; padding: 1.5rem 0; color: #adb5bd; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <header class="section-wrapper">
+        <div class="content-container header-content">
+            <div class="logo">S</div>
+            <div class="profile-pic" id="profile-pic"></div>
+        </div>
+    </header>
+
+    <hr class="section-divider">
+
+    <main class="section-wrapper">
+        <div class="content-container">
+            <div id="logged-out-view">
+                <h2>Log In to StatTube</h2>
+                <p class="sub-text" id="login-subtext">You aren't logged in yet. Let's fix that.</p>
+                <button class="connect-button" id="connect-button">Connect Account</button>
+                <div id="connect-instructions" style="display:none;">
+                    <p>To connect, please type this command in the YouTube live chat:</p>
+                    <div id="connect-command"></div>
+                    <p style="text-align: center; margin-top: 1rem; color: #6c757d;">Waiting for you to enter the command...</p>
+                </div>
+            </div>
+            
+            <div id="logged-in-view" style="display:none;">
+                <h2>Control Panel</h2>
+                <p class="sub-text">You are logged in. You can now publish commands.</p>
+                <div class="button-group">
+                    <button class="connect-button" id="publish-video-button">Publish !video</button>
+                    <button class="connect-button" id="publish-short-button">Publish !short</button>
+                    <button class="connect-button" id="publish-stream-button">Publish !stream</button>
+                    <button class="connect-button" id="publish-song-button">Publish !song</button>
+                    <button class="connect-button" id="publish-post-button">Publish !post</button>
+                </div>
+                <button class="logout-button" id="logout-button">Log Out</button>
+                <p id="publish-status"></p>
+            </div>
+        </div>
+    </main>
+    
+    <hr class="section-divider">
+
+    <section class="section-wrapper">
+        <div class="content-container">
+            <h3>What even is StatTube?</h3>
+            <p>StatTube is a community inside YouTube which is essentially YouTube inside YouTube. In StatTube, you can upload videos, and grow your StatTube channel, the same way as YouTube.</p>
+        </div>
+    </section>
+
+    <footer class="section-wrapper">
+        <div class="content-container footer-content">
+            StatTube (CT) V1.40
+        </div>
+    </footer>
+
+    <script>
+        const API_URL = 'https://api.stat-tube.com';
+        
+        // DOM Elements
+        const loggedOutView = document.getElementById('logged-out-view');
+        const loggedInView = document.getElementById('logged-in-view');
+        const connectButton = document.getElementById('connect-button');
+        const connectInstructions = document.getElementById('connect-instructions');
+        const connectCommand = document.getElementById('connect-command');
+        const loginSubtext = document.getElementById('login-subtext');
+        const publishVideoButton = document.getElementById('publish-video-button');
+        const publishShortButton = document.getElementById('publish-short-button');
+        const publishStreamButton = document.getElementById('publish-stream-button');
+        const publishSongButton = document.getElementById('publish-song-button');
+        const publishPostButton = document.getElementById('publish-post-button');
+        const publishStatus = document.getElementById('publish-status');
+        const logoutButton = document.getElementById('logout-button');
+
+        let pollingInterval = null;
+
+        // --- Core Functions ---
+        function checkLoginStatus() { /* ... unchanged ... */ }
+        function showLoggedInView() { /* ... unchanged ... */ }
+        function showLoggedOutView() { /* ... unchanged ... */ }
+        function logout() { /* ... unchanged ... */ }
+
+        // --- Reusable function to publish to a specific URL path ---
+        async function publishCommand(commandType, commandName) {
+            const userApiKey = localStorage.getItem('userApiKey');
+            if (!userApiKey) { alert('You are not logged in!'); return; }
+            publishStatus.textContent = `Publishing ${commandName}...`;
+            try {
+                const response = await fetch(`${API_URL}/publish/${commandType}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userApiKey: userApiKey })
+                });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.details?.error || result.error || 'Unknown error');
+                publishStatus.textContent = `Success! ${result.message}`;
+            } catch (error) {
+                 publishStatus.textContent = `Error: ${error.message}`;
+            }
+        }
+        
+        // --- Event Listeners ---
+        connectButton.addEventListener('click', async () => { /* ... unchanged ... */ });
+
+        // Event listeners call the new function with the URL path and display name
+        publishVideoButton.addEventListener('click', () => publishCommand('video', '!video'));
+        publishShortButton.addEventListener('click', () => publishCommand('short', '!short'));
+        publishStreamButton.addEventListener('click', () => publishCommand('stream', '!stream'));
+        publishSongButton.addEventListener('click', () => publishCommand('song', '!song'));
+        publishPostButton.addEventListener('click', () => publishCommand('post', '!post'));
+        
+        logoutButton.addEventListener('click', logout);
+
+        // --- Polling Logic ---
+        function startPollingForAuthStatus() { /* ... unchanged ... */ }
+
+        // --- Initial Load ---
+        checkLoginStatus();
+
+        // --- Full function implementations for brevity ---
+        function checkLoginStatus() { if (localStorage.getItem('userApiKey')) showLoggedInView(); else showLoggedOutView(); }
+        function showLoggedInView() { loggedOutView.style.display = 'none'; loggedInView.style.display = 'block'; }
+        function showLoggedOutView() { loggedInView.style.display = 'none'; loggedOutView.style.display = 'block'; }
+        function logout() { localStorage.clear(); if (pollingInterval) clearInterval(pollingInterval); checkLoginStatus(); }
+        connectButton.addEventListener('click', async () => {
+            connectButton.disabled = true; connectButton.textContent = 'Generating Code...';
+            try {
+                const response = await fetch(`${API_URL}/auth/generate-code`);
+                if (!response.ok) throw new Error('Server not available');
+                const data = await response.json();
+                localStorage.setItem('sessionToken', data.sessionToken);
+                connectCommand.textContent = `!connect ${data.connectCode}`;
+                connectButton.style.display = 'none'; loginSubtext.style.display = 'none'; connectInstructions.style.display = 'block';
+                startPollingForAuthStatus();
+            } catch (error) {
+                alert('Could not connect to the API server. Please try again later.');
+                connectButton.disabled = false; connectButton.textContent = 'Connect Account';
+            }
+        });
+        function startPollingForAuthStatus() {
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(async () => {
+                const sessionToken = localStorage.getItem('sessionToken');
+                if (!sessionToken) { clearInterval(pollingInterval); return; }
+                try {
+                    const response = await fetch(`${API_URL}/auth/status?sessionToken=${sessionToken}`);
+                    const data = await response.json();
+                    if (data.status === 'completed') {
+                        clearInterval(pollingInterval);
+                        localStorage.removeItem('sessionToken');
+                        localStorage.setItem('userApiKey', data.userApiKey);
+                        alert('Account connected successfully!');
+                        connectButton.style.display = 'inline-block'; loginSubtext.style.display = 'block'; connectButton.disabled = false;
+                        connectButton.textContent = 'Connect Account'; connectInstructions.style.display = 'none';
+                        checkLoginStatus();
+                    }
+                } catch (error) { console.error('Polling error:', error); }
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
