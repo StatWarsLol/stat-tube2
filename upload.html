@@ -161,6 +161,8 @@
                     <button class="connect-button" id="publish-stream-button">Publish !stream</button>
                     <button class="connect-button" id="publish-song-button">Publish !song</button>
                     <button class="connect-button" id="publish-post-button">Publish !post</button>
+                    <button class="connect-button" id="publish-viral-button">Publish !viral</button>
+                    <button class="connect-button" id="publish-trend-button">Publish !trend</button>
                 </div>
                 <button class="logout-button" id="logout-button">Log Out</button>
                 <p id="publish-status"></p>
@@ -201,6 +203,8 @@
         const publishStreamButton = document.getElementById('publish-stream-button');
         const publishSongButton = document.getElementById('publish-song-button');
         const publishPostButton = document.getElementById('publish-post-button');
+        const publishViralButton = document.getElementById('publish-viral-button');
+        const publishTrendButton = document.getElementById('publish-trend-button');
         const publishStatus = document.getElementById('publish-status');
         const logoutButton = document.getElementById('logout-button');
 
@@ -362,6 +366,8 @@
         publishStreamButton.addEventListener('click', () => publishCommand('stream', '!stream', publishStreamButton));
         publishSongButton.addEventListener('click', () => publishCommand('song', '!song', publishSongButton));
         publishPostButton.addEventListener('click', () => publishCommand('post', '!post', publishPostButton));
+        publishViralButton.addEventListener('click', () => publishCommand('viral', '!viral', publishViralButton));
+        publishTrendButton.addEventListener('click', () => publishCommand('trend', '!trend', publishTrendButton));
         
         logoutButton.addEventListener('click', logout);
 
