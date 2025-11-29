@@ -15,7 +15,7 @@
             margin: 0; 
             background-color: #f8f9fa; 
             color: #495057; 
-            -webkit-tap-highlight-color: transparent; /* Removes blue highlight on mobile tap */
+            -webkit-tap-highlight-color: transparent;
         }
         
         .section-wrapper { background-color: #ffffff; }
@@ -30,7 +30,6 @@
         .sub-text { font-size: 1.2rem; color: #6c757d; }
         .button-group { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
         
-        /* BUTTON STYLES */
         .connect-button { 
             font-family: 'Inter', sans-serif; 
             font-size: 1rem; 
@@ -45,7 +44,6 @@
             position: relative; 
             overflow: hidden; 
             z-index: 1;
-            /* Better touch target for mobile */
             min-height: 48px; 
         }
 
@@ -73,7 +71,6 @@
 
         .logout-button { background: #6c757d; border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; font-family: 'Inter', sans-serif; }
         
-        /* AUTH SECTION STYLES */
         #connect-instructions { margin-top: 2rem; border-top: 1px solid #e9ecef; padding-top: 2rem; }
         
         #connect-command-container {
@@ -88,7 +85,7 @@
 
         #connect-command { 
             font-family: monospace; 
-            font-size: 1.4rem; /* Larger for mobile reading */
+            font-size: 1.4rem;
             color: #dc3545; 
             text-align: center; 
             word-break: break-all;
@@ -110,7 +107,6 @@
         #publish-status { margin-top: 1rem; font-weight: 600; }
         .footer-content { text-align: right; padding: 1.5rem 0; color: #adb5bd; font-size: 0.9rem; }
 
-        /* Mobile specific adjustments */
         @media (max-width: 600px) {
             .content-container { padding: 1rem; }
             h2 { font-size: 1.75rem; }
@@ -123,7 +119,6 @@
 
     <header class="section-wrapper">
         <div class="content-container header-content">
-            <!-- Ensure this image exists, or use text if testing -->
             <img src="./stm.png" alt="StatTube Logo" class="logo" onerror="this.style.display='none'">
             <span style="font-weight:700; font-size: 1.2rem;">StatTube</span>
         </div>
@@ -188,7 +183,6 @@
     <script>
         const API_URL = 'https://api.stat-tube.com';
         
-        // DOM Elements
         const loggedOutView = document.getElementById('logged-out-view');
         const loggedInView = document.getElementById('logged-in-view');
         const connectButton = document.getElementById('connect-button');
@@ -209,9 +203,8 @@
         const logoutButton = document.getElementById('logout-button');
 
         let pollingInterval = null;
-        let isChecking = false; // Prevent double-firing checks
+        let isChecking = false;
 
-        // --- Core Functions ---
         function checkLoginStatus() {
             if (localStorage.getItem('userApiKey')) {
                 showLoggedInView();
@@ -234,7 +227,6 @@
             const userApiKey = localStorage.getItem('userApiKey');
             if (!userApiKey) { alert('You are not logged in!'); return; }
             
-            // Cooldown Animation
             btnElement.classList.add('in-cooldown');
             setTimeout(() => { btnElement.classList.remove('in-cooldown'); }, 1000);
 
@@ -257,9 +249,6 @@
             } 
         }
 
-        // --- Auth & Polling Logic ---
-
-        // 1. Separate the API call from the interval so we can call it manually
         async function attemptAuthCheck() {
             const sessionToken = localStorage.getItem('sessionToken');
             if (!sessionToken || isChecking) return;
@@ -274,7 +263,6 @@
                     localStorage.removeItem('sessionToken');
                     localStorage.setItem('userApiKey', data.userApiKey);
                     
-                    // Reset UI
                     connectButton.style.display = 'inline-block';
                     loginSubtext.style.display = 'block';
                     connectButton.disabled = false;
@@ -283,7 +271,6 @@
                     
                     checkLoginStatus();
                 } else {
-                   // Optional: Update UI to show we are still checking
                    pollingStatus.textContent = "Waiting for command... (Checked just now)";
                 }
             } catch (error) {
@@ -294,10 +281,8 @@
         }
 
         function startPollingForAuthStatus() {
-            stopPolling(); // Clear existing
-            // Check immediately once
+            stopPolling();
             attemptAuthCheck();
-            // Check every 3 seconds
             pollingInterval = setInterval(attemptAuthCheck, 3000);
         }
 
@@ -305,18 +290,13 @@
             if (pollingInterval) clearInterval(pollingInterval);
             pollingInterval = null;
         }
-
-        // --- Event Listeners ---
         
-        // 2. VISIBILITY LISTENER (Crucial for Mobile)
-        // When user switches tabs back to this page, check status immediately
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === 'visible') {
                 const sessionToken = localStorage.getItem('sessionToken');
                 if (sessionToken) {
                     pollingStatus.textContent = "Checking connection status...";
                     attemptAuthCheck();
-                    // Ensure polling is running (in case browser killed the interval)
                     if (!pollingInterval) startPollingForAuthStatus();
                 }
             }
@@ -338,7 +318,6 @@
                 loginSubtext.style.display = 'none'; 
                 connectInstructions.style.display = 'block'; 
                 
-                // Reset copy button
                 copyCmdBtn.textContent = "Copy to Clipboard";
                 
                 startPollingForAuthStatus(); 
@@ -349,7 +328,6 @@
             } 
         });
 
-        // Copy Button Logic
         copyCmdBtn.addEventListener('click', () => {
             const textToCopy = connectCommand.innerText;
             navigator.clipboard.writeText(textToCopy).then(() => {
@@ -361,17 +339,43 @@
             });
         });
         
-        publishVideoButton.addEventListener('click', () => publishCommand('video', '!video', publishVideoButton));
-        publishShortButton.addEventListener('click', () => publishCommand('short', '!short', publishShortButton));
-        publishStreamButton.addEventListener('click', () => publishCommand('stream', '!stream', publishStreamButton));
-        publishSongButton.addEventListener('click', () => publishCommand('song', '!song', publishSongButton));
-        publishPostButton.addEventListener('click', () => publishCommand('post', '!post', publishPostButton));
-        publishViralButton.addEventListener('click', () => publishCommand('viral', '!viral', publishViralButton));
-        publishTrendButton.addEventListener('click', () => publishCommand('trend', '!trend', publishTrendButton));
+        publishVideoButton.addEventListener('click', (event) => {
+            if (!event.isTrusted) return;
+            publishCommand('video', '!video', publishVideoButton);
+        });
+        
+        publishShortButton.addEventListener('click', (event) => {
+            if (!event.isTrusted) return;
+            publishCommand('short', '!short', publishShortButton);
+        });
+
+        publishStreamButton.addEventListener('click', (event) => {
+            if (!event.isTrusted) return;
+            publishCommand('stream', '!stream', publishStreamButton);
+        });
+
+        publishSongButton.addEventListener('click', (event) => {
+            if (!event.isTrusted) return;
+            publishCommand('song', '!song', publishSongButton);
+        });
+
+        publishPostButton.addEventListener('click', (event) => {
+            if (!event.isTrusted) return;
+            publishCommand('post', '!post', publishPostButton);
+        });
+
+        publishViralButton.addEventListener('click', (event) => {
+            if (!event.isTrusted) return;
+            publishCommand('viral', '!viral', publishViralButton);
+        });
+
+        publishTrendButton.addEventListener('click', (event) => {
+            if (!event.isTrusted) return;
+            publishCommand('trend', '!trend', publishTrendButton);
+        });
         
         logoutButton.addEventListener('click', logout);
 
-        // --- Initial Load ---
         checkLoginStatus();
     </script>
 </body>
