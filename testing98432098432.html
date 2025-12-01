@@ -25,51 +25,63 @@
     (function() {
         'use strict';
 
-        // --- SECURITY CONFIGURATION ---
-        // 1. We store the REAL key here, under a boring name that scripts ignore.
+        // --- DEFENSE CONFIGURATION ---
         const STORAGE_KEY_REAL = '_st_sys_config_x9';
-        
-        // 2. We use this key as a TRAP. The bot looks for this.
         const STORAGE_KEY_HONEYPOT = 'userApiKey';
+        const MOUNT_ID = 'st-secure-mount';
+        const API_URL = 'https://api.stat-tube.com';
 
-        // 3. Simple obfuscation function (Reverse string + Base64)
-        // This makes the key look like random garbage in the Application tab.
+        // Obfuscation helpers (Base64 + Reverse)
         const encrypt = (text) => btoa(text.split('').reverse().join(''));
         const decrypt = (text) => atob(text).split('').reverse().join('');
 
         // --- AUTH MANAGER ---
         const Auth = {
-            // Save the real key securely, and set a fake key for the bot
             login: (realApiKey) => {
                 localStorage.setItem(STORAGE_KEY_REAL, encrypt(realApiKey));
                 localStorage.setItem(STORAGE_KEY_HONEYPOT, '0000-INVALID-HONEYPOT-KEY');
             },
-            // Get the real key
             getKey: () => {
                 const blob = localStorage.getItem(STORAGE_KEY_REAL);
                 if (!blob) return null;
                 try { return decrypt(blob); } catch (e) { return null; }
             },
-            // Clear everything
             logout: () => {
                 localStorage.removeItem(STORAGE_KEY_REAL);
                 localStorage.setItem(STORAGE_KEY_HONEYPOT, '0000-INVALID-HONEYPOT-KEY');
             }
         };
 
-        // Initialize Honeypot immediately
+        // Initialize Honeypot
         if (localStorage.getItem(STORAGE_KEY_HONEYPOT) !== '0000-INVALID-HONEYPOT-KEY') {
             localStorage.setItem(STORAGE_KEY_HONEYPOT, '0000-INVALID-HONEYPOT-KEY');
         }
 
-        // --- UI TEMPLATE (Shadow DOM) ---
-        const MOUNT_ID = 'st-secure-mount';
-        const API_URL = 'https://api.stat-tube.com';
-
+        // --- UI TEMPLATE (With CSS Jitter) ---
+        // We add an animation 'anti-bot-jitter' that moves the container by 2px randomly.
+        // Coordinate-based auto clickers will miss the button frequently.
         const templateContent = `
             <style>
                 :host { display: block; all: initial; font-family: 'Inter', sans-serif; }
-                .wrapper { font-family: 'Inter', sans-serif; color: #495057; background-color: #f8f9fa; width: 100%; min-height: 100vh; }
+                
+                @keyframes anti-bot-jitter {
+                    0% { transform: translate(0, 0); }
+                    25% { transform: translate(1px, 1px); }
+                    50% { transform: translate(-1px, 0); }
+                    75% { transform: translate(0, 1px); }
+                    100% { transform: translate(0, 0); }
+                }
+
+                .wrapper { 
+                    font-family: 'Inter', sans-serif; color: #495057; background-color: #f8f9fa; 
+                    width: 100%; min-height: 100vh; 
+                }
+                
+                /* This container moves slightly, breaking fixed-coordinate bots */
+                .jitter-container {
+                    animation: anti-bot-jitter 3s infinite linear;
+                }
+
                 .section-wrapper { background-color: #ffffff; }
                 .content-container { max-width: 840px; margin: 0 auto; padding: 1.5rem 2rem; box-sizing: border-box; }
                 .header-content { display: flex; justify-content: space-between; align-items: center; }
@@ -87,6 +99,7 @@
                     background: linear-gradient(135deg, #0d6efd, #0b5ed7); 
                     border: none; padding: 0.8rem 1.5rem; border-radius: 8px; 
                     cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;
+                    user-select: none; /* Prevents text selection bots */
                 }
                 .connect-button:hover:not(:disabled) { 
                     transform: translateY(-2px); box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); 
@@ -111,7 +124,7 @@
                 </header>
                 <hr class="section-divider">
                 <main class="section-wrapper">
-                    <div class="content-container">
+                    <div class="content-container jitter-container">
                         <!-- LOGGED OUT -->
                         <div id="view-logged-out">
                             <h2>Log In to StatTube</h2>
@@ -150,19 +163,10 @@
             </div>
         `;
 
-        // --- SHADOW DOM INIT ---
+        // --- SHADOW DOM SETUP ---
         const mountPoint = document.getElementById(MOUNT_ID);
         const shadowRoot = mountPoint.attachShadow({ mode: 'closed' });
         shadowRoot.innerHTML = templateContent;
-
-        // Anti-Deletion Watcher
-        new MutationObserver((mutations) => {
-            mutations.forEach((m) => {
-                m.removedNodes.forEach((node) => {
-                    if (node.id === MOUNT_ID) location.reload();
-                });
-            });
-        }).observe(document.body, { childList: true });
 
         // --- INTERNAL REFERENCES ---
         const els = {
@@ -178,9 +182,44 @@
             subText: shadowRoot.getElementById('txt-login-sub')
         };
 
+        // --- HUMAN VERIFICATION SYSTEM ---
+        // Most auto-clickers just fire the 'click' event.
+        // Real humans fire 'pointerdown' (or mousedown) -> wait a few ms -> 'pointerup' -> 'click'.
+        let lastInteractionTime = 0;
+        
+        // Listen for pointerdown on the shadow root (or specific container)
+        // Note: In closed shadow DOM, events might be retargeted, but we can attach listeners to the wrapper
+        const wrapper = shadowRoot.querySelector('.wrapper');
+        
+        wrapper.addEventListener('pointerdown', (e) => {
+            if(e.isTrusted) lastInteractionTime = Date.now();
+        });
+
+        function verifyHumanInteraction(e) {
+            // 1. Basic Trusted Check (Blocks script.click())
+            if (!e.isTrusted) return false;
+
+            // 2. Keyboard Check (Enter key has detail === 0, Coordinates 0,0)
+            // We allow keyboard users, but they must have isTrusted: true.
+            if (e.detail === 0 && e.clientX === 0 && e.clientY === 0) {
+                return true;
+            }
+
+            // 3. Mouse/Touch Sequence Check
+            // If it's a mouse click (detail > 0), there MUST have been a pointerdown recently.
+            // Simple auto-clickers skip the pointerdown event.
+            const timeSinceDown = Date.now() - lastInteractionTime;
+            if (timeSinceDown > 2000) { 
+                console.warn("Blocked: Click detected without preceding pointerdown.");
+                return false; 
+            }
+
+            return true;
+        }
+
+        // --- LOGIC ---
         let pollingInterval = null;
 
-        // Check login status using our OBFUSCATED key
         function updateView() {
             if (Auth.getKey()) {
                 els.viewOut.classList.add('hidden');
@@ -192,7 +231,6 @@
         }
 
         async function attemptAuthCheck() {
-            // Note: We still use sessionToken in plain text as it is temporary
             const token = localStorage.getItem('sessionToken');
             if (!token) return;
 
@@ -203,8 +241,6 @@
                 if (data.status === 'completed') {
                     clearInterval(pollingInterval);
                     localStorage.removeItem('sessionToken');
-                    
-                    // SAVE KEY SECURELY (Obfuscated)
                     Auth.login(data.userApiKey);
                     
                     els.btnConnect.style.display = 'inline-block';
@@ -218,11 +254,9 @@
             } catch (e) { console.error(e); }
         }
 
-        const isHuman = (e) => e.isTrusted;
-
-        // Connect Button
         els.btnConnect.addEventListener('click', async (e) => {
-            if(!isHuman(e)) return;
+            if(!verifyHumanInteraction(e)) return;
+            
             els.btnConnect.disabled = true;
             els.btnConnect.textContent = 'Generating...';
             try {
@@ -242,30 +276,27 @@
             }
         });
 
-        // Copy Button
         els.btnCopy.addEventListener('click', (e) => {
-            if(!isHuman(e)) return;
+            if(!verifyHumanInteraction(e)) return;
             navigator.clipboard.writeText(els.txtCmd.innerText);
             els.btnCopy.textContent = "Copied!";
             setTimeout(() => els.btnCopy.textContent = "Copy to Clipboard", 2000);
         });
 
-        // Logout
         els.btnLogout.addEventListener('click', (e) => {
-            if(!isHuman(e)) return;
-            Auth.logout(); // Clears obfuscated key and resets honeypot
+            if(!verifyHumanInteraction(e)) return;
+            Auth.logout();
             clearInterval(pollingInterval);
             updateView();
         });
 
-        // Action Buttons
         shadowRoot.querySelectorAll('.button-group button').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                if(!isHuman(e)) return;
+                if(!verifyHumanInteraction(e)) return;
+
                 const cmd = btn.getAttribute('data-cmd');
-                
-                // RETRIEVE REAL KEY
                 const realKey = Auth.getKey();
+                
                 if(!realKey) {
                     alert("Session expired.");
                     Auth.logout();
@@ -281,7 +312,6 @@
                     const res = await fetch(`${API_URL}/publish/${cmd}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        // Send the REAL key
                         body: JSON.stringify({ userApiKey: realKey }) 
                     });
                     const d = await res.json();
@@ -297,7 +327,15 @@
             });
         });
 
-        // Poll if visible
+        // Anti-Deletion Watcher (Prevents removing the mount point)
+        new MutationObserver((mutations) => {
+            mutations.forEach((m) => {
+                m.removedNodes.forEach((node) => {
+                    if (node.id === MOUNT_ID) location.reload();
+                });
+            });
+        }).observe(document.body, { childList: true });
+
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === 'visible' && localStorage.getItem('sessionToken')) {
                 attemptAuthCheck();
