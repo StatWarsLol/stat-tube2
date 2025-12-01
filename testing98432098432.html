@@ -4,446 +4,276 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Log In to StatTube</title>
-    
-    <!-- 
-       FIXED CSP:
-       1. Added 'script-src' to explicitly control scripts.
-       2. Added 'unsafe-inline' to allow this specific file to run its own code.
-       3. Restricted 'connect-src' to only your API.
-    -->
+    <!-- CSP: We still need this for security -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.stat-tube.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:;">
-
+    
+    <!-- External fonts need to be loaded in the main head to be available -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
+    
     <style>
-        body { 
-            font-family: 'Inter', sans-serif; 
-            margin: 0; 
-            background-color: #f8f9fa; 
-            color: #495057; 
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        .section-wrapper { background-color: #ffffff; }
-        .content-container { max-width: 840px; margin: 0 auto; padding: 1.5rem 2rem; }
-        .header-content { display: flex; justify-content: space-between; align-items: center; }
-        .section-divider { border: none; height: 1px; background-color: #e9ecef; margin: 0; }
-        .logo { height: 48px; width: auto; }
-        
-        h2 { color: #0d6efd; font-size: 2rem; font-weight: 700; margin-top: 0; margin-bottom: 0.5rem; }
-        h3 { font-size: 1.5rem; font-weight: 700; margin-top: 0; margin-bottom: 0.5rem; color: #212529; }
-        p { font-size: 1.1rem; line-height: 1.6; margin-top: 0; margin-bottom: 1.5rem; }
-        .sub-text { font-size: 1.2rem; color: #6c757d; }
-        .button-group { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
-        
-        .connect-button { 
-            font-family: 'Inter', sans-serif; 
-            font-size: 1rem; 
-            font-weight: 700; 
-            color: #fff; 
-            background: linear-gradient(135deg, #0d6efd, #0b5ed7); 
-            border: none; 
-            padding: 0.8rem 1.5rem; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-            position: relative; 
-            overflow: hidden; 
-            z-index: 1;
-            min-height: 48px; 
-        }
-
-        .connect-button:hover:not(:disabled):not(.in-cooldown) { 
-            transform: translateY(-2px); 
-            box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); 
-        }
-        
-        .connect-button:disabled { background: #6c757d; cursor: not-allowed; }
-
-        .connect-button::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 5px;
-            width: 0%;
-            background-color: rgba(255, 255, 255, 0.8);
-            z-index: 2;
-            transition: none;
-        }
-
-        .connect-button.in-cooldown { cursor: not-allowed; }
-        .connect-button.in-cooldown::after { width: 100%; transition: width 1s linear; }
-
-        .logout-button { background: #6c757d; border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; font-family: 'Inter', sans-serif; }
-        
-        #ui-instruct-box { margin-top: 2rem; border-top: 1px solid #e9ecef; padding-top: 2rem; }
-        
-        #ui-cmd-wrapper {
-            background-color: #e9ecef; 
-            padding: 1.2rem; 
-            border-radius: 8px; 
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-
-        #ui-cmd-display { 
-            font-family: monospace; 
-            font-size: 1.4rem;
-            color: #dc3545; 
-            text-align: center; 
-            word-break: break-all;
-        }
-
-        .copy-btn {
-            background-color: #dee2e6;
-            border: 1px solid #ced4da;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #495057;
-            transition: background 0.2s;
-        }
-        .copy-btn:active { background-color: #ced4da; }
-
-        #st-status-msg { margin-top: 1rem; font-weight: 600; }
-        .footer-content { text-align: right; padding: 1.5rem 0; color: #adb5bd; font-size: 0.9rem; }
-
-        @media (max-width: 600px) {
-            .content-container { padding: 1rem; }
-            h2 { font-size: 1.75rem; }
-            .button-group { flex-direction: column; }
-            .connect-button, .logout-button { width: 100%; }
-        }
+        /* Only body styles go here to ensure the page background is correct */
+        body { margin: 0; background-color: #f8f9fa; -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
 <body>
-
-    <header class="section-wrapper">
-        <div class="content-container header-content">
-            <!-- Removed inline onerror, handled in script now -->
-            <img src="./stm.png" alt="StatTube Logo" class="logo" id="st-logo-main">
-            <span style="font-weight:700; font-size: 1.2rem;">StatTube</span>
-        </div>
-    </header>
-
-    <hr class="section-divider">
-
-    <main class="section-wrapper">
-        <div class="content-container">
-            <!-- Obfuscated ID: v-out -->
-            <div id="v-out">
-                <h2>Log In to StatTube</h2>
-                <p class="sub-text" id="txt-sub-login">You aren't logged in yet. Let's fix that.</p>
-                <!-- Obfuscated ID: act-auth-init -->
-                <button class="connect-button" id="act-auth-init">Connect Account</button>
-                
-                <div id="ui-instruct-box" style="display:none;">
-                    <p><strong>1.</strong> Copy the command below.<br><strong>2.</strong> Switch to YouTube and paste it in the chat.<br><strong>3.</strong> Come back here!</p>
-                    
-                    <div id="ui-cmd-wrapper">
-                        <div id="ui-cmd-display"></div>
-                        <button class="copy-btn" id="act-copy-cmd">Copy to Clipboard</button>
-                    </div>
-
-                    <p id="st-poll-msg" style="text-align: center; margin-top: 1rem; color: #6c757d; font-size: 0.9rem;">
-                        Waiting for you to enter the command...
-                    </p>
-                </div>
-            </div>
-            
-            <!-- Obfuscated ID: v-in -->
-            <div id="v-in" style="display:none;">
-                <h2>Upload</h2>
-                <p class="sub-text">You are logged in. You can now publish commands.</p>
-                <div class="button-group">
-                    <!-- Obfuscated IDs for actions -->
-                    <button class="connect-button" id="x9-btn-vid">Publish !video</button>
-                    <button class="connect-button" id="x9-btn-sht">Publish !short</button>
-                    <button class="connect-button" id="x9-btn-str">Publish !stream</button>
-                    <button class="connect-button" id="x9-btn-sng">Publish !song</button>
-                    <button class="connect-button" id="x9-btn-pst">Publish !post</button>
-                    <button class="connect-button" id="x9-btn-vir">Publish !viral</button>
-                    <button class="connect-button" id="x9-btn-trd">Publish !trend</button>
-                </div>
-                <button class="logout-button" id="act-logout">Log Out</button>
-                <p id="st-status-msg"></p>
-            </div>
-        </div>
-    </main>
-    
-    <hr class="section-divider">
-    
-    <section class="section-wrapper">
-        <div class="content-container">
-            <h3>What even is StatTube?</h3>
-            <p>StatTube is a community inside YouTube which is essentially YouTube inside YouTube. In StatTube, you can upload videos, and grow your StatTube channel, the same way as YouTube.</p>
-        </div>
-    </section>
-
-    <footer class="section-wrapper">
-        <div class="content-container footer-content">
-            StatTube (CT) V1.40
-        </div>
-    </footer>
+    <!-- This is the only element in the Light DOM. If Tampermonkey deletes this, we detect it. -->
+    <div id="st-mount-point"></div>
 
     <script>
-    // SECURITY: We wrap the entire logic in an Immediately Invoked Function Expression (IIFE).
-    // This prevents Tampermonkey from accessing these variables via 'window.variableName'.
     (function() {
         'use strict';
 
-        // --- DEFENSE: DOM INTEGRITY CHECK ---
-        // This observer watches for elements injected by external scripts and removes them.
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1) { // Element node
-                        // If a script tag is injected, or a div without our specific classes/IDs
-                        if (node.tagName === 'SCRIPT') {
-                            node.remove();
-                            console.warn('Blocked external script injection.');
-                        }
+        // 1. DEFINITIONS
+        const MOUNT_ID = 'st-mount-point';
+        const API_URL = 'https://api.stat-tube.com';
+
+        // 2. THE UI TEMPLATE (HTML + CSS)
+        // We inject the CSS *inside* the Shadow DOM so it applies to your elements
+        // but isn't affected by external global styles.
+        const templateContent = `
+            <style>
+                :host { display: block; all: initial; font-family: 'Inter', sans-serif; }
+                .wrapper { font-family: 'Inter', sans-serif; color: #495057; background-color: #f8f9fa; width: 100%; min-height: 100vh; }
+                .section-wrapper { background-color: #ffffff; }
+                .content-container { max-width: 840px; margin: 0 auto; padding: 1.5rem 2rem; box-sizing: border-box; }
+                .header-content { display: flex; justify-content: space-between; align-items: center; }
+                .section-divider { border: none; height: 1px; background-color: #e9ecef; margin: 0; }
+                .logo { height: 48px; width: auto; }
+                h2 { color: #0d6efd; font-size: 2rem; font-weight: 700; margin: 0 0 0.5rem 0; }
+                h3 { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.5rem 0; color: #212529; }
+                p { font-size: 1.1rem; line-height: 1.6; margin: 0 0 1.5rem 0; }
+                .sub-text { font-size: 1.2rem; color: #6c757d; }
+                .button-group { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
+                
+                button { font-family: 'Inter', sans-serif; }
+                
+                .connect-button { 
+                    font-size: 1rem; font-weight: 700; color: #fff; 
+                    background: linear-gradient(135deg, #0d6efd, #0b5ed7); 
+                    border: none; padding: 0.8rem 1.5rem; border-radius: 8px; 
+                    cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;
+                    position: relative; overflow: hidden; z-index: 1; min-height: 48px; 
+                }
+                .connect-button:hover:not(:disabled):not(.in-cooldown) { 
+                    transform: translateY(-2px); box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); 
+                }
+                .connect-button:disabled { background: #6c757d; cursor: not-allowed; }
+                
+                .logout-button { background: #6c757d; border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; }
+                
+                #connect-command-container { background-color: #e9ecef; padding: 1.2rem; border-radius: 8px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+                #connect-command { font-family: monospace; font-size: 1.4rem; color: #dc3545; text-align: center; word-break: break-all; }
+                .footer-content { text-align: right; padding: 1.5rem 0; color: #adb5bd; font-size: 0.9rem; }
+                
+                /* Helper classes */
+                .hidden { display: none !important; }
+            </style>
+
+            <div class="wrapper">
+                <header class="section-wrapper">
+                    <div class="content-container header-content">
+                        <img src="./stm.png" alt="StatTube Logo" class="logo">
+                        <span style="font-weight:700; font-size: 1.2rem;">StatTube</span>
+                    </div>
+                </header>
+                <hr class="section-divider">
+                <main class="section-wrapper">
+                    <div class="content-container">
+                        <!-- LOGGED OUT VIEW -->
+                        <div id="view-logged-out">
+                            <h2>Log In to StatTube</h2>
+                            <p class="sub-text" id="txt-login-sub">You aren't logged in yet. Let's fix that.</p>
+                            <button class="connect-button" id="btn-connect">Connect Account</button>
+                            
+                            <div id="box-instructions" class="hidden" style="margin-top: 2rem; border-top: 1px solid #e9ecef; padding-top: 2rem;">
+                                <p><strong>1.</strong> Copy the command below.<br><strong>2.</strong> Switch to YouTube and paste it in the chat.<br><strong>3.</strong> Come back here!</p>
+                                <div id="connect-command-container">
+                                    <div id="connect-command"></div>
+                                    <button class="connect-button" style="background:#dee2e6; color:#495057;" id="btn-copy">Copy to Clipboard</button>
+                                </div>
+                                <p id="status-poll" style="text-align: center; margin-top: 1rem; color: #6c757d; font-size: 0.9rem;">Waiting for command...</p>
+                            </div>
+                        </div>
+
+                        <!-- LOGGED IN VIEW -->
+                        <div id="view-logged-in" class="hidden">
+                            <h2>Upload</h2>
+                            <p class="sub-text">You are logged in.</p>
+                            <div class="button-group">
+                                <button class="connect-button" data-cmd="video">Publish !video</button>
+                                <button class="connect-button" data-cmd="short">Publish !short</button>
+                                <button class="connect-button" data-cmd="stream">Publish !stream</button>
+                                <button class="connect-button" data-cmd="song">Publish !song</button>
+                                <button class="connect-button" data-cmd="post">Publish !post</button>
+                                <button class="connect-button" data-cmd="viral">Publish !viral</button>
+                                <button class="connect-button" data-cmd="trend">Publish !trend</button>
+                            </div>
+                            <button class="logout-button" id="btn-logout">Log Out</button>
+                            <p id="status-publish" style="margin-top:1rem; font-weight:600;"></p>
+                        </div>
+                    </div>
+                </main>
+                <hr class="section-divider">
+                <footer class="section-wrapper">
+                    <div class="content-container footer-content">StatTube (CT) V1.40</div>
+                </footer>
+            </div>
+        `;
+
+        // 3. INITIALIZE SHADOW DOM
+        // We use 'closed' mode so external scripts cannot do document.getElementById('mount').shadowRoot
+        const mountPoint = document.getElementById(MOUNT_ID);
+        const shadowRoot = mountPoint.attachShadow({ mode: 'closed' });
+        shadowRoot.innerHTML = templateContent;
+
+        // 4. SELF-HEALING OBSERVER (Prevents deleting the mount point)
+        // If a Tampermonkey script deletes <div id="st-mount-point">, we detect it and reload/warn.
+        const bodyObserver = new MutationObserver((mutations) => {
+            mutations.forEach((m) => {
+                m.removedNodes.forEach((node) => {
+                    if (node.id === MOUNT_ID) {
+                        alert("Security Alert: The UI container was modified by an external script. Reloading.");
+                        location.reload();
                     }
                 });
             });
         });
-        
-        // Start observing the body for changes
-        observer.observe(document.body, { childList: true, subtree: true });
-        // ------------------------------------
+        bodyObserver.observe(document.body, { childList: true });
 
-        const C = {
-            API: 'https://api.stat-tube.com',
-            IDS: {
-                LOGO: 'st-logo-main',
-                OUT: 'v-out',
-                IN: 'v-in',
-                BTN_AUTH: 'act-auth-init',
-                BOX_INST: 'ui-instruct-box',
-                CMD_TXT: 'ui-cmd-display',
-                BTN_COPY: 'act-copy-cmd',
-                TXT_SUB: 'txt-sub-login',
-                POLL: 'st-poll-msg',
-                BTN_VID: 'x9-btn-vid',
-                BTN_SHT: 'x9-btn-sht',
-                BTN_STR: 'x9-btn-str',
-                BTN_SNG: 'x9-btn-sng',
-                BTN_PST: 'x9-btn-pst',
-                BTN_VIR: 'x9-btn-vir',
-                BTN_TRD: 'x9-btn-trd',
-                STAT: 'st-status-msg',
-                BTN_OUT: 'act-logout'
-            }
-        };
-        
-        const getEl = (id) => document.getElementById(id);
-        
+
+        // 5. INTERNAL LOGIC (Runs safely inside the closure)
+        // Access elements strictly through 'shadowRoot', not 'document'
         const els = {
-            logo: getEl(C.IDS.LOGO),
-            outView: getEl(C.IDS.OUT),
-            inView: getEl(C.IDS.IN),
-            authBtn: getEl(C.IDS.BTN_AUTH),
-            instBox: getEl(C.IDS.BOX_INST),
-            cmdTxt: getEl(C.IDS.CMD_TXT),
-            copyBtn: getEl(C.IDS.BTN_COPY),
-            subTxt: getEl(C.IDS.TXT_SUB),
-            pollMsg: getEl(C.IDS.POLL),
-            statMsg: getEl(C.IDS.STAT),
-            logoutBtn: getEl(C.IDS.BTN_OUT)
+            viewOut: shadowRoot.getElementById('view-logged-out'),
+            viewIn: shadowRoot.getElementById('view-logged-in'),
+            btnConnect: shadowRoot.getElementById('btn-connect'),
+            boxInst: shadowRoot.getElementById('box-instructions'),
+            txtCmd: shadowRoot.getElementById('connect-command'),
+            btnCopy: shadowRoot.getElementById('btn-copy'),
+            statusPoll: shadowRoot.getElementById('status-poll'),
+            btnLogout: shadowRoot.getElementById('btn-logout'),
+            statusPub: shadowRoot.getElementById('status-publish'),
+            subText: shadowRoot.getElementById('txt-login-sub')
         };
-
-        const actionBtns = {
-            video: getEl(C.IDS.BTN_VID),
-            short: getEl(C.IDS.BTN_SHT),
-            stream: getEl(C.IDS.BTN_STR),
-            song: getEl(C.IDS.BTN_SNG),
-            post: getEl(C.IDS.BTN_PST),
-            viral: getEl(C.IDS.BTN_VIR),
-            trend: getEl(C.IDS.BTN_TRD)
-        };
-
-        // Handle Image Error safely within JS
-        if (els.logo) {
-            els.logo.addEventListener('error', function() {
-                this.style.display = 'none';
-            });
-        }
 
         let pollingInterval = null;
-        let isChecking = false;
 
+        // --- Auth Logic ---
         function checkLoginStatus() {
             if (localStorage.getItem('userApiKey')) {
-                els.outView.style.display = 'none';
-                els.inView.style.display = 'block';
+                els.viewOut.classList.add('hidden');
+                els.viewIn.classList.remove('hidden');
             } else {
-                els.inView.style.display = 'none';
-                els.outView.style.display = 'block';
+                els.viewIn.classList.add('hidden');
+                els.viewOut.classList.remove('hidden');
             }
-        }
-        
-        function logout() { 
-            localStorage.clear(); 
-            stopPolling(); 
-            checkLoginStatus(); 
-        }
-        
-        async function publishCommand(commandType, commandName, btnElement) {
-            if (btnElement.classList.contains('in-cooldown')) return;
-
-            const userApiKey = localStorage.getItem('userApiKey');
-            if (!userApiKey) { alert('You are not logged in!'); return; }
-            
-            btnElement.classList.add('in-cooldown');
-            setTimeout(() => { btnElement.classList.remove('in-cooldown'); }, 1000);
-
-            els.statMsg.textContent = `Publishing ${commandName}...`; 
-            els.statMsg.style.color = "#495057";
-            
-            try { 
-                const response = await fetch(`${C.API}/publish/${commandType}`, { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ userApiKey: userApiKey }) 
-                }); 
-                const result = await response.json(); 
-                if (!response.ok) throw new Error(result.details?.error || result.error || 'Unknown error'); 
-                els.statMsg.textContent = `Success! ${result.message}`; 
-                els.statMsg.style.color = "#198754";
-            } catch (error) { 
-                els.statMsg.textContent = `Error: ${error.message}`; 
-                els.statMsg.style.color = "#dc3545";
-            } 
         }
 
         async function attemptAuthCheck() {
-            const sessionToken = localStorage.getItem('sessionToken');
-            if (!sessionToken || isChecking) return;
-
-            isChecking = true;
+            const token = localStorage.getItem('sessionToken');
+            if (!token) return;
             try {
-                const response = await fetch(`${C.API}/auth/status?sessionToken=${sessionToken}`);
-                const data = await response.json();
-                
+                const res = await fetch(`${API_URL}/auth/status?sessionToken=${token}`);
+                const data = await res.json();
                 if (data.status === 'completed') {
-                    stopPolling();
+                    clearInterval(pollingInterval);
                     localStorage.removeItem('sessionToken');
                     localStorage.setItem('userApiKey', data.userApiKey);
                     
-                    els.authBtn.style.display = 'inline-block';
-                    els.subTxt.style.display = 'block';
-                    els.authBtn.disabled = false;
-                    els.authBtn.textContent = 'Connect Account';
-                    els.instBox.style.display = 'none';
+                    // Reset UI State
+                    els.btnConnect.style.display = 'inline-block';
+                    els.subText.style.display = 'block';
+                    els.boxInst.classList.add('hidden');
+                    els.btnConnect.disabled = false;
+                    els.btnConnect.textContent = 'Connect Account';
                     
                     checkLoginStatus();
-                } else {
-                   els.pollMsg.textContent = "Waiting for command... (Checked just now)";
                 }
-            } catch (error) {
-                console.error('Polling error:', error);
-            } finally {
-                isChecking = false;
-            }
+            } catch (e) { console.error(e); }
         }
 
-        function startPollingForAuthStatus() {
-            stopPolling();
-            attemptAuthCheck();
-            pollingInterval = setInterval(attemptAuthCheck, 3000);
-        }
+        // --- Event Listeners ---
+        // Verify click is trusted (human)
+        const isHuman = (e) => e.isTrusted;
 
-        function stopPolling() {
-            if (pollingInterval) clearInterval(pollingInterval);
-            pollingInterval = null;
-        }
-        
-        document.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === 'visible') {
-                const sessionToken = localStorage.getItem('sessionToken');
-                if (sessionToken) {
-                    els.pollMsg.textContent = "Checking connection status...";
-                    attemptAuthCheck();
-                    if (!pollingInterval) startPollingForAuthStatus();
-                }
+        els.btnConnect.addEventListener('click', async (e) => {
+            if(!isHuman(e)) return;
+            els.btnConnect.disabled = true;
+            els.btnConnect.textContent = 'Generating...';
+            try {
+                const res = await fetch(`${API_URL}/auth/generate-code`);
+                const data = await res.json();
+                localStorage.setItem('sessionToken', data.sessionToken);
+                
+                els.txtCmd.textContent = `!connect ${data.connectCode}`;
+                els.btnConnect.style.display = 'none';
+                els.subText.style.display = 'none';
+                els.boxInst.classList.remove('hidden');
+                
+                pollingInterval = setInterval(attemptAuthCheck, 3000);
+            } catch (err) {
+                alert('Connection failed');
+                els.btnConnect.disabled = false;
             }
         });
 
-        // SECURITY: Trusted Event Verification
-        function verifyHuman(e) {
-            if(!e.isTrusted) {
-                console.error("Untrusted click detected");
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
+        els.btnCopy.addEventListener('click', (e) => {
+            if(!isHuman(e)) return;
+            navigator.clipboard.writeText(els.txtCmd.innerText);
+            els.btnCopy.textContent = "Copied!";
+            setTimeout(() => els.btnCopy.textContent = "Copy to Clipboard", 2000);
+        });
+
+        els.btnLogout.addEventListener('click', (e) => {
+            if(!isHuman(e)) return;
+            localStorage.clear();
+            clearInterval(pollingInterval);
+            checkLoginStatus();
+        });
+
+        // Delegate listeners for action buttons
+        shadowRoot.querySelectorAll('.button-group button').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                if(!isHuman(e)) return;
+                const cmd = btn.getAttribute('data-cmd');
+                const userApiKey = localStorage.getItem('userApiKey');
+                if(!userApiKey) return;
+
+                btn.disabled = true;
+                els.statusPub.textContent = `Publishing !${cmd}...`;
+                els.statusPub.style.color = "#495057";
+
+                try {
+                    const res = await fetch(`${API_URL}/publish/${cmd}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userApiKey })
+                    });
+                    const d = await res.json();
+                    if(!res.ok) throw new Error(d.error || 'Error');
+                    els.statusPub.textContent = "Success!";
+                    els.statusPub.style.color = "#198754";
+                } catch(err) {
+                    els.statusPub.textContent = err.message;
+                    els.statusPub.style.color = "#dc3545";
+                } finally {
+                    setTimeout(() => btn.disabled = false, 1000);
+                }
+            });
+        });
+
+        // Handle page visibility for polling
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'visible' && localStorage.getItem('sessionToken')) {
+                attemptAuthCheck();
             }
-            return true;
-        }
-
-        if(els.authBtn) {
-            els.authBtn.addEventListener('click', async (e) => { 
-                if(!verifyHuman(e)) return;
-                els.authBtn.disabled = true; 
-                els.authBtn.textContent = 'Generating Code...'; 
-                try { 
-                    const response = await fetch(`${C.API}/auth/generate-code`); 
-                    if (!response.ok) throw new Error('Server not available'); 
-                    const data = await response.json(); 
-                    
-                    localStorage.setItem('sessionToken', data.sessionToken); 
-                    const cmdString = `!connect ${data.connectCode}`;
-                    
-                    els.cmdTxt.textContent = cmdString; 
-                    els.authBtn.style.display = 'none'; 
-                    els.subTxt.style.display = 'none'; 
-                    els.instBox.style.display = 'block'; 
-                    
-                    els.copyBtn.textContent = "Copy to Clipboard";
-                    
-                    startPollingForAuthStatus(); 
-                } catch (error) { 
-                    alert('Could not connect to the API server. Please try again later.'); 
-                    els.authBtn.disabled = false; 
-                    els.authBtn.textContent = 'Connect Account'; 
-                } 
-            });
-        }
-
-        if(els.copyBtn) {
-            els.copyBtn.addEventListener('click', (e) => {
-                if(!verifyHuman(e)) return;
-                const textToCopy = els.cmdTxt.innerText;
-                navigator.clipboard.writeText(textToCopy).then(() => {
-                    els.copyBtn.textContent = "Copied!";
-                    setTimeout(() => els.copyBtn.textContent = "Copy to Clipboard", 2000);
-                }).catch(err => {
-                    console.error('Failed to copy', err);
-                    prompt("Copy this code:", textToCopy);
-                });
-            });
-        }
-        
-        // Map listeners to new obfuscated IDs
-        if(actionBtns.video) actionBtns.video.addEventListener('click', (e) => verifyHuman(e) && publishCommand('video', '!video', actionBtns.video));
-        if(actionBtns.short) actionBtns.short.addEventListener('click', (e) => verifyHuman(e) && publishCommand('short', '!short', actionBtns.short));
-        if(actionBtns.stream) actionBtns.stream.addEventListener('click', (e) => verifyHuman(e) && publishCommand('stream', '!stream', actionBtns.stream));
-        if(actionBtns.song) actionBtns.song.addEventListener('click', (e) => verifyHuman(e) && publishCommand('song', '!song', actionBtns.song));
-        if(actionBtns.post) actionBtns.post.addEventListener('click', (e) => verifyHuman(e) && publishCommand('post', '!post', actionBtns.post));
-        if(actionBtns.viral) actionBtns.viral.addEventListener('click', (e) => verifyHuman(e) && publishCommand('viral', '!viral', actionBtns.viral));
-        if(actionBtns.trend) actionBtns.trend.addEventListener('click', (e) => verifyHuman(e) && publishCommand('trend', '!trend', actionBtns.trend));
-        
-        if(els.logoutBtn) els.logoutBtn.addEventListener('click', (e) => verifyHuman(e) && logout());
+        });
 
         checkLoginStatus();
 
-    })(); 
+    })();
     </script>
 </body>
 </html>
