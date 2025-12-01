@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Log In to StatTube</title>
+    
     <!-- CSP: Allow unsafe-inline for this file, block other domains -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.stat-tube.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:;">
     
@@ -16,27 +17,55 @@
     </style>
 </head>
 <body>
-    <!-- The only element visible to the main DOM -->
+    
+    <!-- Protected Mount Point -->
     <div id="st-secure-mount"></div>
 
     <script>
     (function() {
         'use strict';
 
-        // --- SECURITY CORE ---
-        // 1. MEMORY STORAGE: The key lives here. Not in LocalStorage.
-        // Tampermonkey cannot access variables inside this IIFE closure.
-        let _RAM_KEY = null;
+        // --- SECURITY CONFIGURATION ---
+        // 1. We store the REAL key here, under a boring name that scripts ignore.
+        const STORAGE_KEY_REAL = '_st_sys_config_x9';
+        
+        // 2. We use this key as a TRAP. The bot looks for this.
+        const STORAGE_KEY_HONEYPOT = 'userApiKey';
 
-        // 2. HONEYPOT: We put a fake key in LocalStorage to trick scripts.
-        if (localStorage.getItem('userApiKey') !== '0000-INVALID-BOT-KEY') {
-            localStorage.setItem('userApiKey', '0000-INVALID-BOT-KEY');
+        // 3. Simple obfuscation function (Reverse string + Base64)
+        // This makes the key look like random garbage in the Application tab.
+        const encrypt = (text) => btoa(text.split('').reverse().join(''));
+        const decrypt = (text) => atob(text).split('').reverse().join('');
+
+        // --- AUTH MANAGER ---
+        const Auth = {
+            // Save the real key securely, and set a fake key for the bot
+            login: (realApiKey) => {
+                localStorage.setItem(STORAGE_KEY_REAL, encrypt(realApiKey));
+                localStorage.setItem(STORAGE_KEY_HONEYPOT, '0000-INVALID-HONEYPOT-KEY');
+            },
+            // Get the real key
+            getKey: () => {
+                const blob = localStorage.getItem(STORAGE_KEY_REAL);
+                if (!blob) return null;
+                try { return decrypt(blob); } catch (e) { return null; }
+            },
+            // Clear everything
+            logout: () => {
+                localStorage.removeItem(STORAGE_KEY_REAL);
+                localStorage.setItem(STORAGE_KEY_HONEYPOT, '0000-INVALID-HONEYPOT-KEY');
+            }
+        };
+
+        // Initialize Honeypot immediately
+        if (localStorage.getItem(STORAGE_KEY_HONEYPOT) !== '0000-INVALID-HONEYPOT-KEY') {
+            localStorage.setItem(STORAGE_KEY_HONEYPOT, '0000-INVALID-HONEYPOT-KEY');
         }
 
+        // --- UI TEMPLATE (Shadow DOM) ---
         const MOUNT_ID = 'st-secure-mount';
         const API_URL = 'https://api.stat-tube.com';
 
-        // --- TEMPLATE ---
         const templateContent = `
             <style>
                 :host { display: block; all: initial; font-family: 'Inter', sans-serif; }
@@ -121,13 +150,12 @@
             </div>
         `;
 
-        // --- SHADOW DOM SETUP ---
+        // --- SHADOW DOM INIT ---
         const mountPoint = document.getElementById(MOUNT_ID);
-        const shadowRoot = mountPoint.attachShadow({ mode: 'closed' }); // Closed mode blocks JS access
+        const shadowRoot = mountPoint.attachShadow({ mode: 'closed' });
         shadowRoot.innerHTML = templateContent;
 
-        // --- DEFENSE: DOM WATCHER ---
-        // If script deletes mount point, reload.
+        // Anti-Deletion Watcher
         new MutationObserver((mutations) => {
             mutations.forEach((m) => {
                 m.removedNodes.forEach((node) => {
@@ -152,8 +180,9 @@
 
         let pollingInterval = null;
 
+        // Check login status using our OBFUSCATED key
         function updateView() {
-            if (_RAM_KEY) {
+            if (Auth.getKey()) {
                 els.viewOut.classList.add('hidden');
                 els.viewIn.classList.remove('hidden');
             } else {
@@ -163,8 +192,7 @@
         }
 
         async function attemptAuthCheck() {
-            // Check session token from RAM or SessionStorage (obfuscated) if needed
-            // For now, using sessionToken from LocalStorage is okay because it's only for the initial handshake
+            // Note: We still use sessionToken in plain text as it is temporary
             const token = localStorage.getItem('sessionToken');
             if (!token) return;
 
@@ -174,12 +202,10 @@
                 
                 if (data.status === 'completed') {
                     clearInterval(pollingInterval);
-                    localStorage.removeItem('sessionToken'); // Remove handshake token
+                    localStorage.removeItem('sessionToken');
                     
-                    // --- CRITICAL DEFENSE ---
-                    // Save key to RAM ONLY. 
-                    // Do NOT save to localStorage.setItem('userApiKey')
-                    _RAM_KEY = data.userApiKey; 
+                    // SAVE KEY SECURELY (Obfuscated)
+                    Auth.login(data.userApiKey);
                     
                     els.btnConnect.style.display = 'inline-block';
                     els.subText.style.display = 'block';
@@ -194,6 +220,7 @@
 
         const isHuman = (e) => e.isTrusted;
 
+        // Connect Button
         els.btnConnect.addEventListener('click', async (e) => {
             if(!isHuman(e)) return;
             els.btnConnect.disabled = true;
@@ -215,6 +242,7 @@
             }
         });
 
+        // Copy Button
         els.btnCopy.addEventListener('click', (e) => {
             if(!isHuman(e)) return;
             navigator.clipboard.writeText(els.txtCmd.innerText);
@@ -222,23 +250,26 @@
             setTimeout(() => els.btnCopy.textContent = "Copy to Clipboard", 2000);
         });
 
+        // Logout
         els.btnLogout.addEventListener('click', (e) => {
             if(!isHuman(e)) return;
-            _RAM_KEY = null; // Clear RAM key
-            localStorage.setItem('userApiKey', '0000-INVALID-BOT-KEY'); // Reset honeypot
+            Auth.logout(); // Clears obfuscated key and resets honeypot
             clearInterval(pollingInterval);
             updateView();
         });
 
+        // Action Buttons
         shadowRoot.querySelectorAll('.button-group button').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 if(!isHuman(e)) return;
                 const cmd = btn.getAttribute('data-cmd');
                 
-                // USE RAM KEY ONLY
-                if(!_RAM_KEY) {
-                    alert("Session expired. Please reconnect.");
-                    location.reload();
+                // RETRIEVE REAL KEY
+                const realKey = Auth.getKey();
+                if(!realKey) {
+                    alert("Session expired.");
+                    Auth.logout();
+                    updateView();
                     return;
                 }
 
@@ -250,7 +281,8 @@
                     const res = await fetch(`${API_URL}/publish/${cmd}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userApiKey: _RAM_KEY }) // Send RAM key
+                        // Send the REAL key
+                        body: JSON.stringify({ userApiKey: realKey }) 
                     });
                     const d = await res.json();
                     if(!res.ok) throw new Error(d.error || 'Error');
@@ -265,8 +297,13 @@
             });
         });
 
-        // NOTE: Since we are using RAM keys, if the user refreshes, they are logged out.
-        // This is the trade-off for blocking the Tampermonkey script.
+        // Poll if visible
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === 'visible' && localStorage.getItem('sessionToken')) {
+                attemptAuthCheck();
+            }
+        });
+
         updateView();
 
     })();
