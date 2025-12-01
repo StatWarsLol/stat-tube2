@@ -5,65 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Log In to StatTube</title>
     
-    <!-- CSP: Allow unsafe-inline for this file, block other domains -->
+    <!-- CSP: Security Policy to prevent unauthorized script execution -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.stat-tube.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:;">
-    
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
+
+    <!-- Global Page Styles (Background) -->
     <style>
         body { margin: 0; background-color: #f8f9fa; -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
 <body>
-    
-    <!-- Protected Mount Point -->
+
+    <!-- THE ONLY ELEMENT VISIBLE TO THE DOM -->
     <div id="st-secure-mount"></div>
 
     <script>
     (function() {
         'use strict';
 
-        // --- DEFENSE CONFIGURATION ---
-        const STORAGE_KEY_REAL = '_st_sys_config_x9';
-        const STORAGE_KEY_HONEYPOT = 'userApiKey';
+        // --- 1. SECURITY CONFIGURATION ---
         const MOUNT_ID = 'st-secure-mount';
         const API_URL = 'https://api.stat-tube.com';
+        
+        // Storage Keys (Obfuscated vs Honeypot)
+        const STORAGE_REAL = '_st_sys_config_x9'; 
+        const STORAGE_TRAP = 'userApiKey';
 
-        // Obfuscation helpers (Base64 + Reverse)
-        const encrypt = (text) => btoa(text.split('').reverse().join(''));
-        const decrypt = (text) => atob(text).split('').reverse().join('');
+        // Encryption Helpers (Simple Obfuscation)
+        const encrypt = (t) => btoa(t.split('').reverse().join(''));
+        const decrypt = (t) => atob(t).split('').reverse().join('');
 
-        // --- AUTH MANAGER ---
+        // --- 2. AUTHENTICATION MANAGER ---
         const Auth = {
-            login: (realApiKey) => {
-                localStorage.setItem(STORAGE_KEY_REAL, encrypt(realApiKey));
-                localStorage.setItem(STORAGE_KEY_HONEYPOT, '0000-INVALID-HONEYPOT-KEY');
+            login: (realKey) => {
+                localStorage.setItem(STORAGE_REAL, encrypt(realKey));
+                localStorage.setItem(STORAGE_TRAP, '0000-INVALID-HONEYPOT-KEY');
             },
             getKey: () => {
-                const blob = localStorage.getItem(STORAGE_KEY_REAL);
+                const blob = localStorage.getItem(STORAGE_REAL);
                 if (!blob) return null;
-                try { return decrypt(blob); } catch (e) { return null; }
+                try { return decrypt(blob); } catch(e) { return null; }
             },
             logout: () => {
-                localStorage.removeItem(STORAGE_KEY_REAL);
-                localStorage.setItem(STORAGE_KEY_HONEYPOT, '0000-INVALID-HONEYPOT-KEY');
+                localStorage.removeItem(STORAGE_REAL);
+                localStorage.setItem(STORAGE_TRAP, '0000-INVALID-HONEYPOT-KEY');
             }
         };
 
-        // Initialize Honeypot
-        if (localStorage.getItem(STORAGE_KEY_HONEYPOT) !== '0000-INVALID-HONEYPOT-KEY') {
-            localStorage.setItem(STORAGE_KEY_HONEYPOT, '0000-INVALID-HONEYPOT-KEY');
+        // Initialize Honeypot immediately
+        if (localStorage.getItem(STORAGE_TRAP) !== '0000-INVALID-HONEYPOT-KEY') {
+            localStorage.setItem(STORAGE_TRAP, '0000-INVALID-HONEYPOT-KEY');
         }
 
-        // --- UI TEMPLATE (With CSS Jitter) ---
-        // We add an animation 'anti-bot-jitter' that moves the container by 2px randomly.
-        // Coordinate-based auto clickers will miss the button frequently.
+        // --- 3. UI TEMPLATE (HTML + CSS) ---
+        // Contains all your original styles plus the "Anti-Bot Jitter" animation.
         const templateContent = `
             <style>
                 :host { display: block; all: initial; font-family: 'Inter', sans-serif; }
                 
+                /* Anti-Bot Animation: Moves elements 1px randomly to break coordinate-clickers */
                 @keyframes anti-bot-jitter {
                     0% { transform: translate(0, 0); }
                     25% { transform: translate(1px, 1px); }
@@ -73,76 +76,126 @@
                 }
 
                 .wrapper { 
-                    font-family: 'Inter', sans-serif; color: #495057; background-color: #f8f9fa; 
-                    width: 100%; min-height: 100vh; 
+                    font-family: 'Inter', sans-serif; 
+                    margin: 0; 
+                    background-color: #f8f9fa; 
+                    color: #495057; 
+                    width: 100%;
+                    min-height: 100vh;
                 }
                 
-                /* This container moves slightly, breaking fixed-coordinate bots */
-                .jitter-container {
-                    animation: anti-bot-jitter 3s infinite linear;
-                }
-
                 .section-wrapper { background-color: #ffffff; }
                 .content-container { max-width: 840px; margin: 0 auto; padding: 1.5rem 2rem; box-sizing: border-box; }
                 .header-content { display: flex; justify-content: space-between; align-items: center; }
                 .section-divider { border: none; height: 1px; background-color: #e9ecef; margin: 0; }
                 .logo { height: 48px; width: auto; }
-                h2 { color: #0d6efd; font-size: 2rem; font-weight: 700; margin: 0 0 0.5rem 0; }
-                p { font-size: 1.1rem; line-height: 1.6; margin: 0 0 1.5rem 0; }
+                
+                h2 { color: #0d6efd; font-size: 2rem; font-weight: 700; margin-top: 0; margin-bottom: 0.5rem; }
+                h3 { font-size: 1.5rem; font-weight: 700; margin-top: 0; margin-bottom: 0.5rem; color: #212529; }
+                p { font-size: 1.1rem; line-height: 1.6; margin-top: 0; margin-bottom: 1.5rem; }
                 .sub-text { font-size: 1.2rem; color: #6c757d; }
                 .button-group { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
                 
+                /* Buttons */
                 button { font-family: 'Inter', sans-serif; }
-                
+
                 .connect-button { 
-                    font-size: 1rem; font-weight: 700; color: #fff; 
+                    font-size: 1rem; 
+                    font-weight: 700; 
+                    color: #fff; 
                     background: linear-gradient(135deg, #0d6efd, #0b5ed7); 
-                    border: none; padding: 0.8rem 1.5rem; border-radius: 8px; 
-                    cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;
+                    border: none; 
+                    padding: 0.8rem 1.5rem; 
+                    border-radius: 8px; 
+                    cursor: pointer; 
+                    transition: transform 0.2s ease, box-shadow 0.2s ease;
+                    position: relative; 
+                    overflow: hidden; 
+                    z-index: 1;
+                    min-height: 48px; 
                     user-select: none; /* Prevents text selection bots */
                 }
-                .connect-button:hover:not(:disabled) { 
-                    transform: translateY(-2px); box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); 
+
+                .connect-button:hover:not(:disabled):not(.in-cooldown) { 
+                    transform: translateY(-2px); 
+                    box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3); 
                 }
-                .connect-button:disabled { background: #6c757d; cursor: not-allowed; }
                 
+                .connect-button:disabled { background: #6c757d; cursor: not-allowed; }
+
+                /* Loading bar effect */
+                .connect-button::after {
+                    content: ''; position: absolute; bottom: 0; left: 0; height: 5px; width: 0%;
+                    background-color: rgba(255, 255, 255, 0.8); z-index: 2; transition: none;
+                }
+                .connect-button.in-cooldown { cursor: not-allowed; }
+                .connect-button.in-cooldown::after { width: 100%; transition: width 1s linear; }
+
                 .logout-button { background: #6c757d; border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; }
+                
+                /* Instruction Box */
+                #connect-instructions { margin-top: 2rem; border-top: 1px solid #e9ecef; padding-top: 2rem; }
+                #connect-command-container {
+                    background-color: #e9ecef; padding: 1.2rem; border-radius: 8px; 
+                    display: flex; flex-direction: column; align-items: center; gap: 10px;
+                }
+                #connect-command { 
+                    font-family: monospace; font-size: 1.4rem; color: #dc3545; 
+                    text-align: center; word-break: break-all; 
+                }
+                .copy-btn {
+                    background-color: #dee2e6; border: 1px solid #ced4da; padding: 8px 16px; 
+                    border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; 
+                    color: #495057; transition: background 0.2s;
+                }
+                .copy-btn:active { background-color: #ced4da; }
+
+                #publish-status { margin-top: 1rem; font-weight: 600; }
+                .footer-content { text-align: right; padding: 1.5rem 0; color: #adb5bd; font-size: 0.9rem; }
                 
                 .hidden { display: none !important; }
                 
-                #box-instructions { margin-top: 2rem; border-top: 1px solid #e9ecef; padding-top: 2rem; }
-                #connect-command { font-family: monospace; font-size: 1.4rem; color: #dc3545; text-align: center; background: #e9ecef; padding: 1rem; border-radius: 8px; margin-bottom: 10px; word-break: break-all; }
-                .footer-content { text-align: right; padding: 1.5rem 0; color: #adb5bd; font-size: 0.9rem; }
+                /* Jitter Class */
+                .jitter-protect { animation: anti-bot-jitter 3s infinite linear; }
             </style>
 
             <div class="wrapper">
                 <header class="section-wrapper">
                     <div class="content-container header-content">
-                        <img src="./stm.png" alt="StatTube Logo" class="logo">
+                        <img src="./stm.png" alt="StatTube Logo" class="logo" id="st-logo">
                         <span style="font-weight:700; font-size: 1.2rem;">StatTube</span>
                     </div>
                 </header>
+
                 <hr class="section-divider">
+
                 <main class="section-wrapper">
-                    <div class="content-container jitter-container">
-                        <!-- LOGGED OUT -->
-                        <div id="view-logged-out">
+                    <div class="content-container jitter-protect">
+                        
+                        <!-- LOGGED OUT VIEW -->
+                        <div id="logged-out-view">
                             <h2>Log In to StatTube</h2>
-                            <p class="sub-text" id="txt-login-sub">You aren't logged in yet. Let's fix that.</p>
-                            <button class="connect-button" id="btn-connect">Connect Account</button>
+                            <p class="sub-text" id="login-subtext">You aren't logged in yet. Let's fix that.</p>
+                            <button class="connect-button" id="connect-button">Connect Account</button>
                             
-                            <div id="box-instructions" class="hidden">
-                                <p><strong>1.</strong> Copy the command below.<br><strong>2.</strong> Paste it in YouTube chat.<br><strong>3.</strong> Wait here!</p>
-                                <div id="connect-command"></div>
-                                <button class="connect-button" style="background:#dee2e6; color:#495057;" id="btn-copy">Copy to Clipboard</button>
-                                <p id="status-poll" style="text-align: center; margin-top: 1rem; color: #6c757d;">Waiting...</p>
+                            <div id="connect-instructions" class="hidden">
+                                <p><strong>1.</strong> Copy the command below.<br><strong>2.</strong> Switch to YouTube and paste it in the chat.<br><strong>3.</strong> Come back here!</p>
+                                
+                                <div id="connect-command-container">
+                                    <div id="connect-command"></div>
+                                    <button class="copy-btn" id="copy-cmd-btn">Copy to Clipboard</button>
+                                </div>
+
+                                <p id="polling-status" style="text-align: center; margin-top: 1rem; color: #6c757d; font-size: 0.9rem;">
+                                    Waiting for you to enter the command...
+                                </p>
                             </div>
                         </div>
-
-                        <!-- LOGGED IN -->
-                        <div id="view-logged-in" class="hidden">
+                        
+                        <!-- LOGGED IN VIEW -->
+                        <div id="logged-in-view" class="hidden">
                             <h2>Upload</h2>
-                            <p class="sub-text">You are logged in.</p>
+                            <p class="sub-text">You are logged in. You can now publish commands.</p>
                             <div class="button-group">
                                 <button class="connect-button" data-cmd="video">Publish !video</button>
                                 <button class="connect-button" data-cmd="short">Publish !short</button>
@@ -152,75 +205,84 @@
                                 <button class="connect-button" data-cmd="viral">Publish !viral</button>
                                 <button class="connect-button" data-cmd="trend">Publish !trend</button>
                             </div>
-                            <button class="logout-button" id="btn-logout">Log Out</button>
-                            <p id="status-publish" style="margin-top:1rem; font-weight:600;"></p>
+                            <button class="logout-button" id="logout-button">Log Out</button>
+                            <p id="publish-status"></p>
                         </div>
                     </div>
                 </main>
+                
+                <hr class="section-divider">
+                
+                <section class="section-wrapper">
+                    <div class="content-container">
+                        <h3>What even is StatTube?</h3>
+                        <p>StatTube is a community inside YouTube which is essentially YouTube inside YouTube. In StatTube, you can upload videos, and grow your StatTube channel, the same way as YouTube.</p>
+                    </div>
+                </section>
+
                 <footer class="section-wrapper">
-                    <div class="content-container footer-content">StatTube (CT) V1.40</div>
+                    <div class="content-container footer-content">
+                        StatTube (CT) V1.40
+                    </div>
                 </footer>
             </div>
         `;
 
-        // --- SHADOW DOM SETUP ---
+        // --- 4. INITIALIZE SHADOW DOM ---
         const mountPoint = document.getElementById(MOUNT_ID);
-        const shadowRoot = mountPoint.attachShadow({ mode: 'closed' });
+        const shadowRoot = mountPoint.attachShadow({ mode: 'closed' }); // Closed mode = No external JS access
         shadowRoot.innerHTML = templateContent;
 
-        // --- INTERNAL REFERENCES ---
-        const els = {
-            viewOut: shadowRoot.getElementById('view-logged-out'),
-            viewIn: shadowRoot.getElementById('view-logged-in'),
-            btnConnect: shadowRoot.getElementById('btn-connect'),
-            boxInst: shadowRoot.getElementById('box-instructions'),
-            txtCmd: shadowRoot.getElementById('connect-command'),
-            btnCopy: shadowRoot.getElementById('btn-copy'),
-            statusPoll: shadowRoot.getElementById('status-poll'),
-            btnLogout: shadowRoot.getElementById('btn-logout'),
-            statusPub: shadowRoot.getElementById('status-publish'),
-            subText: shadowRoot.getElementById('txt-login-sub')
-        };
+        // --- 5. DOM INTEGRITY WATCHER (Prevent Deletion) ---
+        new MutationObserver((mutations) => {
+            mutations.forEach((m) => {
+                m.removedNodes.forEach((node) => {
+                    if (node.id === MOUNT_ID) location.reload();
+                });
+            });
+        }).observe(document.body, { childList: true });
 
-        // --- HUMAN VERIFICATION SYSTEM ---
-        // Most auto-clickers just fire the 'click' event.
-        // Real humans fire 'pointerdown' (or mousedown) -> wait a few ms -> 'pointerup' -> 'click'.
-        let lastInteractionTime = 0;
+        // --- 6. INTERNAL REFERENCES ---
+        const els = {
+            logo: shadowRoot.getElementById('st-logo'),
+            viewOut: shadowRoot.getElementById('logged-out-view'),
+            viewIn: shadowRoot.getElementById('logged-in-view'),
+            btnConnect: shadowRoot.getElementById('connect-button'),
+            boxInst: shadowRoot.getElementById('connect-instructions'),
+            txtCmd: shadowRoot.getElementById('connect-command'),
+            btnCopy: shadowRoot.getElementById('copy-cmd-btn'),
+            txtSub: shadowRoot.getElementById('login-subtext'),
+            statusPoll: shadowRoot.getElementById('polling-status'),
+            btnLogout: shadowRoot.getElementById('logout-button'),
+            statusPub: shadowRoot.getElementById('publish-status')
+        };
         
-        // Listen for pointerdown on the shadow root (or specific container)
-        // Note: In closed shadow DOM, events might be retargeted, but we can attach listeners to the wrapper
+        // Handle Logo Error (Replacing inline onerror)
+        els.logo.addEventListener('error', function() { this.style.display = 'none'; });
+
+        // --- 7. HUMAN VERIFICATION (Anti-AutoClicker) ---
+        let lastInteractionTime = 0;
         const wrapper = shadowRoot.querySelector('.wrapper');
         
+        // Track pointerdown events
         wrapper.addEventListener('pointerdown', (e) => {
             if(e.isTrusted) lastInteractionTime = Date.now();
         });
 
-        function verifyHumanInteraction(e) {
-            // 1. Basic Trusted Check (Blocks script.click())
-            if (!e.isTrusted) return false;
-
-            // 2. Keyboard Check (Enter key has detail === 0, Coordinates 0,0)
-            // We allow keyboard users, but they must have isTrusted: true.
-            if (e.detail === 0 && e.clientX === 0 && e.clientY === 0) {
-                return true;
-            }
-
-            // 3. Mouse/Touch Sequence Check
-            // If it's a mouse click (detail > 0), there MUST have been a pointerdown recently.
-            // Simple auto-clickers skip the pointerdown event.
-            const timeSinceDown = Date.now() - lastInteractionTime;
-            if (timeSinceDown > 2000) { 
-                console.warn("Blocked: Click detected without preceding pointerdown.");
-                return false; 
-            }
-
+        function verifyHuman(e) {
+            if (!e.isTrusted) return false; // Block scripts
+            // Allow keyboard (detail 0)
+            if (e.detail === 0 && e.clientX === 0 && e.clientY === 0) return true;
+            // Require recent pointerdown for clicks
+            if ((Date.now() - lastInteractionTime) > 2000) return false;
             return true;
         }
 
-        // --- LOGIC ---
+        // --- 8. APP LOGIC ---
         let pollingInterval = null;
+        let isChecking = false;
 
-        function updateView() {
+        function checkLoginStatus() {
             if (Auth.getKey()) {
                 els.viewOut.classList.add('hidden');
                 els.viewIn.classList.remove('hidden');
@@ -232,119 +294,129 @@
 
         async function attemptAuthCheck() {
             const token = localStorage.getItem('sessionToken');
-            if (!token) return;
+            if (!token || isChecking) return;
+            isChecking = true;
 
             try {
-                const res = await fetch(`${API_URL}/auth/status?sessionToken=${token}`);
-                const data = await res.json();
+                const response = await fetch(`${API_URL}/auth/status?sessionToken=${token}`);
+                const data = await response.json();
                 
                 if (data.status === 'completed') {
                     clearInterval(pollingInterval);
                     localStorage.removeItem('sessionToken');
+                    
+                    // SAVE SECURELY
                     Auth.login(data.userApiKey);
                     
+                    // Reset UI
                     els.btnConnect.style.display = 'inline-block';
-                    els.subText.style.display = 'block';
-                    els.boxInst.classList.add('hidden');
+                    els.txtSub.style.display = 'block';
                     els.btnConnect.disabled = false;
                     els.btnConnect.textContent = 'Connect Account';
+                    els.boxInst.classList.add('hidden');
                     
-                    updateView();
+                    checkLoginStatus();
+                } else {
+                    els.statusPoll.textContent = "Waiting for command... (Checked just now)";
                 }
-            } catch (e) { console.error(e); }
+            } catch (error) {
+                console.error(error);
+            } finally {
+                isChecking = false;
+            }
         }
 
-        els.btnConnect.addEventListener('click', async (e) => {
-            if(!verifyHumanInteraction(e)) return;
-            
-            els.btnConnect.disabled = true;
-            els.btnConnect.textContent = 'Generating...';
-            try {
-                const res = await fetch(`${API_URL}/auth/generate-code`);
-                const data = await res.json();
-                localStorage.setItem('sessionToken', data.sessionToken);
+        // Connect Button
+        els.btnConnect.addEventListener('click', async (e) => { 
+            if(!verifyHuman(e)) return;
+            els.btnConnect.disabled = true; 
+            els.btnConnect.textContent = 'Generating Code...'; 
+            try { 
+                const response = await fetch(`${API_URL}/auth/generate-code`); 
+                if (!response.ok) throw new Error('Server not available'); 
+                const data = await response.json(); 
                 
+                localStorage.setItem('sessionToken', data.sessionToken); 
                 els.txtCmd.textContent = `!connect ${data.connectCode}`;
-                els.btnConnect.style.display = 'none';
-                els.subText.style.display = 'none';
-                els.boxInst.classList.remove('hidden');
                 
+                els.btnConnect.style.display = 'none'; 
+                els.txtSub.style.display = 'none'; 
+                els.boxInst.classList.remove('hidden'); 
+                
+                els.btnCopy.textContent = "Copy to Clipboard";
                 pollingInterval = setInterval(attemptAuthCheck, 3000);
-            } catch (err) {
-                alert('Connection failed');
-                els.btnConnect.disabled = false;
-            }
+            } catch (error) { 
+                alert('Connection error. Try again.'); 
+                els.btnConnect.disabled = false; 
+                els.btnConnect.textContent = 'Connect Account'; 
+            } 
         });
 
+        // Copy Button
         els.btnCopy.addEventListener('click', (e) => {
-            if(!verifyHumanInteraction(e)) return;
-            navigator.clipboard.writeText(els.txtCmd.innerText);
-            els.btnCopy.textContent = "Copied!";
-            setTimeout(() => els.btnCopy.textContent = "Copy to Clipboard", 2000);
+            if(!verifyHuman(e)) return;
+            navigator.clipboard.writeText(els.txtCmd.innerText).then(() => {
+                els.btnCopy.textContent = "Copied!";
+                setTimeout(() => els.btnCopy.textContent = "Copy to Clipboard", 2000);
+            });
         });
 
-        els.btnLogout.addEventListener('click', (e) => {
-            if(!verifyHumanInteraction(e)) return;
+        // Logout
+        els.btnLogout.addEventListener('click', (e) => { 
+            if(!verifyHuman(e)) return;
             Auth.logout();
             clearInterval(pollingInterval);
-            updateView();
+            checkLoginStatus();
         });
 
+        // Action Buttons (Delegation)
         shadowRoot.querySelectorAll('.button-group button').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                if(!verifyHumanInteraction(e)) return;
-
-                const cmd = btn.getAttribute('data-cmd');
-                const realKey = Auth.getKey();
+                if(!verifyHuman(e)) return;
                 
-                if(!realKey) {
-                    alert("Session expired.");
-                    Auth.logout();
-                    updateView();
-                    return;
-                }
+                if (btn.classList.contains('in-cooldown')) return;
+                
+                const cmd = btn.getAttribute('data-cmd');
+                const userApiKey = Auth.getKey(); // Retrieve real key
+                
+                if (!userApiKey) { alert('You are not logged in!'); return; }
 
-                btn.disabled = true;
-                els.statusPub.textContent = `Publishing !${cmd}...`;
+                // Visual Cooldown
+                btn.classList.add('in-cooldown');
+                setTimeout(() => { btn.classList.remove('in-cooldown'); }, 1000);
+
+                els.statusPub.textContent = `Publishing !${cmd}...`; 
                 els.statusPub.style.color = "#495057";
 
-                try {
-                    const res = await fetch(`${API_URL}/publish/${cmd}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userApiKey: realKey }) 
-                    });
-                    const d = await res.json();
-                    if(!res.ok) throw new Error(d.error || 'Error');
-                    els.statusPub.textContent = "Success!";
+                try { 
+                    const response = await fetch(`${API_URL}/publish/${cmd}`, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ userApiKey: userApiKey }) // Send Real Key
+                    }); 
+                    const result = await response.json(); 
+                    if (!response.ok) throw new Error(result.details?.error || result.error || 'Unknown error'); 
+                    els.statusPub.textContent = `Success! ${result.message}`; 
                     els.statusPub.style.color = "#198754";
-                } catch(err) {
-                    els.statusPub.textContent = err.message;
+                } catch (error) { 
+                    els.statusPub.textContent = `Error: ${error.message}`; 
                     els.statusPub.style.color = "#dc3545";
-                } finally {
-                    setTimeout(() => btn.disabled = false, 1000);
-                }
+                } 
             });
         });
 
-        // Anti-Deletion Watcher (Prevents removing the mount point)
-        new MutationObserver((mutations) => {
-            mutations.forEach((m) => {
-                m.removedNodes.forEach((node) => {
-                    if (node.id === MOUNT_ID) location.reload();
-                });
-            });
-        }).observe(document.body, { childList: true });
-
+        // Visibility Polling Logic
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === 'visible' && localStorage.getItem('sessionToken')) {
+                els.statusPoll.textContent = "Checking connection status...";
                 attemptAuthCheck();
+                if (!pollingInterval) pollingInterval = setInterval(attemptAuthCheck, 3000);
             }
         });
 
-        updateView();
+        checkLoginStatus();
 
-    })();
+    })(); 
     </script>
 </body>
 </html>
