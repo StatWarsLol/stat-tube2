@@ -102,6 +102,7 @@
                     z-index: 1;
                     min-height: 48px; 
                     user-select: none; 
+                    --cooldown-time: 1s; /* Dynamic Variable */
                 }
 
                 .connect-button:hover:not(:disabled):not(.in-cooldown) { 
@@ -116,7 +117,7 @@
                     background-color: rgba(255, 255, 255, 0.8); z-index: 2; transition: none;
                 }
                 .connect-button.in-cooldown { cursor: not-allowed; }
-                .connect-button.in-cooldown::after { width: 100%; transition: width 1s linear; }
+                .connect-button.in-cooldown::after { width: 100%; transition: width var(--cooldown-time) linear; }
 
                 .logout-button { background: #6c757d; border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; }
                 
@@ -142,6 +143,16 @@
                 .hidden { display: none !important; }
                 
                 .jitter-protect { animation: anti-bot-jitter 3s infinite linear; }
+                
+                #command-title {
+                    width: 100%;
+                    box-sizing: border-box;
+                    padding: 0.8rem;
+                    margin-bottom: 1rem;
+                    border: 1px solid #ced4da;
+                    border-radius: 8px;
+                    font-size: 1.1rem;
+                }
             </style>
 
             <div class="wrapper">
@@ -177,8 +188,9 @@
                         </div>
                         
                         <div id="logged-in-view" class="hidden">
-                            <h2>Upload</h2>
-                            <p class="sub-text">You are logged in. You can now publish commands.</p>
+                            <h2>Publish Command</h2>
+                            <p class="sub-text">Enter a title and select a command to publish.</p>
+                            <input type="text" id="command-title" placeholder="Enter title (min. 5 characters)">
                             <div class="button-group">
                                 <button class="connect-button" data-cmd="video">Publish !video</button>
                                 <button class="connect-button" data-cmd="short">Publish !short</button>
@@ -234,7 +246,8 @@
             txtSub: shadowRoot.getElementById('login-subtext'),
             statusPoll: shadowRoot.getElementById('polling-status'),
             btnLogout: shadowRoot.getElementById('logout-button'),
-            statusPub: shadowRoot.getElementById('publish-status')
+            statusPub: shadowRoot.getElementById('publish-status'),
+            commandTitle: shadowRoot.getElementById('command-title')
         };
         
         els.logo.addEventListener('error', function() { this.style.display = 'none'; });
@@ -255,6 +268,9 @@
 
         let pollingInterval = null;
         let isChecking = false;
+
+        // Tracks the previous normalized title to detect repeats/sequences
+        let lastTitleBase = "";
 
         function checkLoginStatus() {
             if (Auth.getKey()) {
@@ -344,27 +360,52 @@
                 
                 if (btn.classList.contains('in-cooldown')) return;
                 
+                const title = els.commandTitle.value.trim();
+                if (title.length < 5) {
+                    els.statusPub.textContent = "Error: Title must be at least 5 characters long.";
+                    els.statusPub.style.color = "#dc3545";
+                    return;
+                }
+
+                // --- REPEAT DETECTION LOGIC ---
+                // Normalize: Lowercase and strip trailing numbers/hashes (e.g., "Lmao #1" becomes "lmao")
+                const normalizedTitle = title.toLowerCase().replace(/\s*#?\d+$/, "").trim();
+                
+                let currentCooldown = 1000; // Default 1 second
+                
+                if (normalizedTitle === lastTitleBase) {
+                    currentCooldown = 2000; // Increase to 2 seconds for repeated/numbered titles
+                }
+                
+                // Update trackable title for next click
+                lastTitleBase = normalizedTitle;
+                // --- END REPEAT DETECTION ---
+
                 const cmd = btn.getAttribute('data-cmd');
                 const userApiKey = Auth.getKey();
                 
                 if (!userApiKey) { alert('You are not logged in!'); return; }
 
+                // Apply dynamic cooldown duration to CSS and JS
+                btn.style.setProperty('--cooldown-time', currentCooldown + 'ms');
                 btn.classList.add('in-cooldown');
-                setTimeout(() => { btn.classList.remove('in-cooldown'); }, 1000);
+                setTimeout(() => { btn.classList.remove('in-cooldown'); }, currentCooldown);
 
-                els.statusPub.textContent = `Publishing !${cmd}...`; 
+                els.statusPub.textContent = `Publishing !${cmd} with title "${title}"...`; 
                 els.statusPub.style.color = "#495057";
 
                 try { 
                     const response = await fetch(`${API_URL}/publish/${cmd}`, { 
                         method: 'POST', 
                         headers: { 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ userApiKey: userApiKey })
+                        body: JSON.stringify({ userApiKey: userApiKey, title: title })
                     }); 
                     const result = await response.json(); 
                     if (!response.ok) throw new Error(result.details?.error || result.error || 'Unknown error'); 
+                    
                     els.statusPub.textContent = `Success! ${result.message}`; 
                     els.statusPub.style.color = "#198754";
+                    els.commandTitle.value = ''; // Clear title on success
                 } catch (error) { 
                     els.statusPub.textContent = `Error: ${error.message}`; 
                     els.statusPub.style.color = "#dc3545";
