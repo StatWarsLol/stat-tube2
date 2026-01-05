@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Log In to StatTube</title>
     
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.stat-tube.com; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:;">
+    <!-- FIXED CSP TAG BELOW -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.stat-tube.com https://cloudflareinsights.com; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:;">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -102,6 +103,7 @@
                     z-index: 1;
                     min-height: 48px; 
                     user-select: none; 
+                    --cooldown-time: 1s;
                 }
 
                 .connect-button:hover:not(:disabled):not(.in-cooldown) { 
@@ -116,7 +118,7 @@
                     background-color: rgba(255, 255, 255, 0.8); z-index: 2; transition: none;
                 }
                 .connect-button.in-cooldown { cursor: not-allowed; }
-                .connect-button.in-cooldown::after { width: 100%; transition: width 1s linear; }
+                .connect-button.in-cooldown::after { width: 100%; transition: width var(--cooldown-time) linear; }
 
                 .logout-button { background: #6c757d; border: none; color: white; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; }
                 
@@ -142,6 +144,16 @@
                 .hidden { display: none !important; }
                 
                 .jitter-protect { animation: anti-bot-jitter 3s infinite linear; }
+                
+                #command-title {
+                    width: 100%;
+                    box-sizing: border-box;
+                    padding: 0.8rem;
+                    margin-bottom: 1rem;
+                    border: 1px solid #ced4da;
+                    border-radius: 8px;
+                    font-size: 1.1rem;
+                }
             </style>
 
             <div class="wrapper">
@@ -177,8 +189,9 @@
                         </div>
                         
                         <div id="logged-in-view" class="hidden">
-                            <h2>Upload</h2>
-                            <p class="sub-text">You are logged in. You can now publish commands.</p>
+                            <h2>Publish Command</h2>
+                            <p class="sub-text">Enter a title and select a command to publish.</p>
+                            <input type="text" id="command-title" placeholder="Enter title (min. 5 characters)">
                             <div class="button-group">
                                 <button class="connect-button" data-cmd="video">Publish !video</button>
                                 <button class="connect-button" data-cmd="short">Publish !short</button>
@@ -234,7 +247,8 @@
             txtSub: shadowRoot.getElementById('login-subtext'),
             statusPoll: shadowRoot.getElementById('polling-status'),
             btnLogout: shadowRoot.getElementById('logout-button'),
-            statusPub: shadowRoot.getElementById('publish-status')
+            statusPub: shadowRoot.getElementById('publish-status'),
+            commandTitle: shadowRoot.getElementById('command-title')
         };
         
         els.logo.addEventListener('error', function() { this.style.display = 'none'; });
@@ -255,6 +269,7 @@
 
         let pollingInterval = null;
         let isChecking = false;
+        let lastTitleBase = "";
 
         function checkLoginStatus() {
             if (Auth.getKey()) {
@@ -278,15 +293,12 @@
                 if (data.status === 'completed') {
                     clearInterval(pollingInterval);
                     localStorage.removeItem('sessionToken');
-                    
                     Auth.login(data.userApiKey);
-                    
                     els.btnConnect.style.display = 'inline-block';
                     els.txtSub.style.display = 'block';
                     els.btnConnect.disabled = false;
                     els.btnConnect.textContent = 'Connect Account';
                     els.boxInst.classList.add('hidden');
-                    
                     checkLoginStatus();
                 } else {
                     els.statusPoll.textContent = "Waiting for command... (Checked just now)";
@@ -306,14 +318,11 @@
                 const response = await fetch(`${API_URL}/auth/generate-code`); 
                 if (!response.ok) throw new Error('Server not available'); 
                 const data = await response.json(); 
-                
                 localStorage.setItem('sessionToken', data.sessionToken); 
                 els.txtCmd.textContent = `!connect ${data.connectCode}`;
-                
                 els.btnConnect.style.display = 'none'; 
                 els.txtSub.style.display = 'none'; 
                 els.boxInst.classList.remove('hidden'); 
-                
                 els.btnCopy.textContent = "Copy to Clipboard";
                 pollingInterval = setInterval(attemptAuthCheck, 3000);
             } catch (error) { 
@@ -341,30 +350,36 @@
         shadowRoot.querySelectorAll('.button-group button').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 if(!verifyHuman(e)) return;
-                
                 if (btn.classList.contains('in-cooldown')) return;
-                
+                const title = els.commandTitle.value.trim();
+                if (title.length < 5) {
+                    els.statusPub.textContent = "Error: Title must be at least 5 characters long.";
+                    els.statusPub.style.color = "#dc3545";
+                    return;
+                }
+                const normalizedTitle = title.toLowerCase().replace(/\s*#?\d+$/, "").trim();
+                let currentCooldown = 1000; 
+                if (normalizedTitle === lastTitleBase) currentCooldown = 2000; 
+                lastTitleBase = normalizedTitle;
                 const cmd = btn.getAttribute('data-cmd');
                 const userApiKey = Auth.getKey();
-                
                 if (!userApiKey) { alert('You are not logged in!'); return; }
-
+                btn.style.setProperty('--cooldown-time', currentCooldown + 'ms');
                 btn.classList.add('in-cooldown');
-                setTimeout(() => { btn.classList.remove('in-cooldown'); }, 1000);
-
-                els.statusPub.textContent = `Publishing !${cmd}...`; 
+                setTimeout(() => { btn.classList.remove('in-cooldown'); }, currentCooldown);
+                els.statusPub.textContent = `Publishing !${cmd} with title "${title}"...`; 
                 els.statusPub.style.color = "#495057";
-
                 try { 
                     const response = await fetch(`${API_URL}/publish/${cmd}`, { 
                         method: 'POST', 
                         headers: { 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ userApiKey: userApiKey })
+                        body: JSON.stringify({ userApiKey: userApiKey, title: title })
                     }); 
                     const result = await response.json(); 
                     if (!response.ok) throw new Error(result.details?.error || result.error || 'Unknown error'); 
                     els.statusPub.textContent = `Success! ${result.message}`; 
                     els.statusPub.style.color = "#198754";
+                    els.commandTitle.value = ''; 
                 } catch (error) { 
                     els.statusPub.textContent = `Error: ${error.message}`; 
                     els.statusPub.style.color = "#dc3545";
@@ -384,5 +399,8 @@
 
     })(); 
     </script>
+
+    <!-- Cloudflare Analytics Script -->
+    <script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"54992b473264496dad3c2d3456688177","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
