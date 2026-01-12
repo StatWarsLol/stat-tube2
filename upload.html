@@ -6,7 +6,11 @@
     <title>Log In to StatTube</title>
     
     <!-- FIXED CSP TAG: Added 'self' to connect-src -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.stat-tube.com https://cloudflareinsights.com; script-src 'self' data:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; 
+    script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; 
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
+    font-src 'self' https://fonts.gstatic.com; 
+    connect-src 'self' https://api.stat-tube.com https://cloudflareinsights.com;">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
