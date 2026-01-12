@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Log In to StatTube</title>
     
-    <!-- FIXED CSP TAG BELOW -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.stat-tube.com https://cloudflareinsights.com; script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:;">
+    <!-- FIXED CSP TAG: Added 'self' to connect-src -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.stat-tube.com https://cloudflareinsights.com; script-src 'self' data:;">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
     <style>
-        body { margin: 0; background-color: #f8f9fa; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; background-color: #f8f9fa; -webkit-tap-highlight-color: transparent; font-family: 'Inter', sans-serif; }
     </style>
 </head>
 <body>
