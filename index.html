@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>hehe this is a statistical war</title>
+    <title>Stat-Tube Premium</title>
     <!-- Import Inter Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,7 +23,6 @@
             --odo-easing: cubic-bezier(0.45, 0.05, 0.55, 0.95);
             --spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
             --font-main: 'Inter', sans-serif;
-            /* Added variable to sync Odometer heights */
             --odo-h: 140px;
         }
 
@@ -58,6 +57,30 @@
             -webkit-text-fill-color: transparent;
             display: inline-block;
             letter-spacing: -0.5px;
+        }
+
+        /* --- TRUNCATION RULES --- */
+        .title {
+            font-size: 14px;
+            margin: 0;
+            line-height: 1.4;
+            font-weight: 500;
+            /* Force ellipsis at 2 lines */
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            word-break: break-word;
+        }
+
+        .truncate-1 {
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            word-break: break-word;
         }
 
         /* --- LOADING ANIMATIONS --- */
@@ -191,13 +214,13 @@
 
         .details { display: flex; gap: 12px; }
         .details img { width: 36px; height: 36px; border-radius: 50% !important; object-fit: cover; flex-shrink: 0; }
-        .title { font-size: 14px; margin: 0; line-height: 1.4; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .meta { color: var(--yt-secondary); font-size: 12px; margin-top: 4px; }
 
         /* --- PROFILE VIEW --- */
         #channelProfileView { display: none; padding-top: 20px; opacity: 0; transition: opacity 0.5s; }
-        .profile-header { display: flex; gap: 30px; align-items: center; }
+        .profile-header { display: flex; gap: 30px; align-items: center; overflow: hidden; }
         .profile-pfp-circle { width: 160px; height: 160px; border-radius: 50% !important; object-fit: cover; box-shadow: 0 4px 20px rgba(0,0,0,0.6); flex-shrink: 0; }
+        .profile-info { overflow: hidden; flex: 1; }
         .profile-info h1 { font-size: 36px; margin: 0; font-weight: 800; }
 
         /* --- ODOMETER STUDIO --- */
@@ -223,12 +246,13 @@
         .pub-btn.in-cooldown { background: #222; opacity: 0.5; pointer-events: none; }
         
         .hidden { display: none !important; }
-        .channel-search-row { display: flex; gap: 50px; padding: 24px 0; border-bottom: 1px solid var(--yt-border); cursor: pointer; text-decoration: none; color: inherit; }
-        .search-pfp { width: 136px; height: 136px; border-radius: 50%; }
+        .channel-search-row { display: flex; gap: 50px; padding: 24px 0; border-bottom: 1px solid var(--yt-border); cursor: pointer; text-decoration: none; color: inherit; overflow: hidden; }
+        .search-pfp { width: 136px; height: 136px; border-radius: 50%; flex-shrink: 0; }
+        .search-info { overflow: hidden; flex: 1; display: flex; flex-direction: column; justify-content: center; }
 
         /* --- MOBILE RESPONSIVE QUERIES --- */
         @media (max-width: 768px) {
-            :root { --odo-h: 70px; } /* Smaller odometer for mobile */
+            :root { --odo-h: 70px; } 
             .header { padding: 8px 10px; }
             .brand-text { display: none; }
             .header-left { gap: 8px; flex: 0; }
@@ -284,7 +308,7 @@
     <div id="liveSubCountView">
         <button onclick="closeStudio()" style="position:absolute; top:20px; right:20px; background:none; border:none; color:white; font-size:40px; cursor:pointer;">×</button>
         <img src="" id="studioPfp" class="studio-pfp" style="width:120px; height:120px; margin-bottom:20px; border:3px solid #444; border-radius: 50%; object-fit: cover;">
-        <div id="studioName" style="font-size:28px; font-weight: 600; margin-bottom: 40px; text-align: center;"></div>
+        <div id="studioName" class="truncate-1" style="font-size:28px; font-weight: 600; margin-bottom: 40px; text-align: center; max-width: 80%;"></div>
         <div class="odometer-container" id="odometer"></div>
         <div style="font-size:22px; color:var(--yt-secondary); text-transform:uppercase; font-weight: 600; letter-spacing:2px; margin-top:10px;">Subscribers</div>
     </div>
@@ -356,7 +380,7 @@
                 const user = userEntry ? userEntry[1] : { displayName: "User", profilePicture: defaultPfp };
                 const handle = userEntry ? userEntry[0] : "@unknown";
                 header.innerHTML = `<button class="create-btn" style="background:var(--yt-chip-bg); border:none; color:var(--yt-text); padding:0 16px; height:36px; border-radius:18px; cursor:pointer; font-weight:500; display:flex; align-items:center; gap:8px; margin-right:15px;" onclick="togglePublishModal()"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M14,13h-3v3H9v-3H6v-2h3V8h2v3h3V13z M17,6H3v12h14v-6.39l4,3.83V8.56l-4,3.83V6z M18,5v5.51L22,7v10l-4-3.51V19H2V5H18z"></path></svg><span>Create</span></button><img src="${user.profilePicture}" class="user-pfp-btn" onclick="toggleUserDropdown()" onerror="this.src='${defaultPfp}';">`;
-                dropContent.innerHTML = `<div class="dropdown-header"><img src="${user.profilePicture}" onerror="this.src='${defaultPfp}';"><div class="dropdown-user-info"><h4 style="margin:0">${user.displayName}</h4><p style="margin:2px 0">${handle}</p><a href="#" style="color:var(--yt-blue); text-decoration:none; font-size:14px;" onclick="openChannel('${cid}'); toggleUserDropdown(); return false;">View your channel</a></div></div>`;
+                dropContent.innerHTML = `<div class="dropdown-header"><img src="${user.profilePicture}" onerror="this.src='${defaultPfp}';"><div class="dropdown-user-info"><h4 class="truncate-1" style="margin:0">${user.displayName}</h4><p class="truncate-1" style="margin:2px 0">${handle}</p><a href="#" style="color:var(--yt-blue); text-decoration:none; font-size:14px;" onclick="openChannel('${cid}'); toggleUserDropdown(); return false;">View your channel</a></div></div>`;
                 document.getElementById('modalLoggedOut').classList.add('hidden'); document.getElementById('modalLoggedIn').classList.remove('hidden');
             } else {
                 header.innerHTML = `<button class="signin-btn" onclick="togglePublishModal()">Sign In</button>`;
@@ -431,7 +455,7 @@
             btn.classList.add('in-cooldown');
             try {
                 await fetch(`${API_URL}/publish/${cmd}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userApiKey: Auth.getKey(), title: title }) });
-                document.getElementById('pubStatus').innerText = "Success! Content Published.";
+                document.getElementById('pubStatus').innerText = "Success!";
                 document.getElementById('pubTitle').value = "";
             } catch (e) {} finally { setTimeout(() => btn.classList.remove('in-cooldown'), 2000); }
         }
@@ -457,7 +481,7 @@
                     if (data.displayName?.toLowerCase().includes(q) || handle.toLowerCase().includes(q)) {
                         const row = document.createElement('div'); row.className = "channel-search-row";
                         row.onclick = () => openChannel(data.channelId);
-                        row.innerHTML = `<img src="${data.profilePicture || defaultPfp}" class="search-pfp" onerror="this.src='${defaultPfp}';"><div style="display:flex; flex-direction:column; justify-content:center;"><h2 style="margin:0;">${data.displayName}</h2><div style="color:var(--yt-secondary);">${handle} • ${data.subscriberCount.toLocaleString()} subs</div></div>`;
+                        row.innerHTML = `<img src="${data.profilePicture || defaultPfp}" class="search-pfp" onerror="this.src='${defaultPfp}';"><div class="search-info"><h2 class="truncate-1" style="margin:0;">${data.displayName}</h2><div style="color:var(--yt-secondary);">${handle} • ${data.subscriberCount.toLocaleString()} subs</div></div>`;
                         cRes.appendChild(row);
                     }
                 });
@@ -473,7 +497,7 @@
             const user = Object.values(usersData).find(u => u.channelId === v.channelId) || {};
             const card = document.createElement('div'); card.className = 'video-card'; card.onclick = () => openChannel(v.channelId);
             card.style.animationDelay = `${Math.min(i * 0.04, 0.8)}s`;
-            card.innerHTML = `<div class="thumbnail"><div class="thumb-bg" style="background: ${getColorForCommand(v.command)};"></div><img src="${user.profilePicture || defaultPfp}" class="thumb-overlay-pfp" onerror="this.src='${defaultPfp}';"><span style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.8); padding:2px 6px; border-radius:4px; font-size:12px; font-weight:700; color:white;">${v.command}</span></div><div class="details"><img src="${user.profilePicture || defaultPfp}" onerror="this.src='${defaultPfp}';"><div><h3 class="title">${v.title}</h3><div style="color:var(--yt-secondary); font-size:12px; margin-top:4px;">${v.username} • <span class="time-label" data-time="${v.timestamp}">${getTimeAgo(v.timestamp)}</span></div></div></div>`;
+            card.innerHTML = `<div class="thumbnail"><div class="thumb-bg" style="background: ${getColorForCommand(v.command)};"></div><img src="${user.profilePicture || defaultPfp}" class="thumb-overlay-pfp" onerror="this.src='${defaultPfp}';"><span style="position:absolute; bottom:8px; right:8px; background:rgba(0,0,0,0.8); padding:2px 6px; border-radius:4px; font-size:12px; font-weight:700; color:white;">${v.command}</span></div><div class="details"><img src="${user.profilePicture || defaultPfp}" onerror="this.src='${defaultPfp}';"><div style="overflow:hidden;"><h3 class="title">${v.title}</h3><div style="color:var(--yt-secondary); font-size:12px; margin-top:4px;" class="truncate-1">${v.username} • <span class="time-label" data-time="${v.timestamp}">${getTimeAgo(v.timestamp)}</span></div></div></div>`;
             return card;
         }
 
@@ -482,7 +506,7 @@
             const [handle, user] = userEntry; currentHandle = handle;
             document.getElementById('mainView').style.display = 'none'; document.getElementById('channelProfileView').style.display = 'block'; document.getElementById('channelProfileView').style.opacity = "1"; document.getElementById('backBtn').style.display = 'block';
             const chanVids = allVideos.filter(v => v.channelId === cid);
-            document.getElementById('profileTop').innerHTML = `<div class="profile-header"><img src="${user.profilePicture || defaultPfp}" class="profile-pfp-circle" onerror="this.src='${defaultPfp}';"><div class="profile-info"><h1>${user.displayName}</h1><div style="color:var(--yt-secondary); margin-top:8px; font-size:14px;">${handle} • ${user.subscriberCount.toLocaleString()} subs • ${chanVids.length} videos</div><button class="btn-gray" onclick="openStudio()">Live Sub Count View</button></div></div>`;
+            document.getElementById('profileTop').innerHTML = `<div class="profile-header"><img src="${user.profilePicture || defaultPfp}" class="profile-pfp-circle" onerror="this.src='${defaultPfp}';"><div class="profile-info"><h1 class="truncate-1">${user.displayName}</h1><div style="color:var(--yt-secondary); margin-top:8px; font-size:14px;" class="truncate-1">${handle} • ${user.subscriberCount.toLocaleString()} subs • ${chanVids.length} videos</div><button class="btn-gray" onclick="openStudio()">Live Sub Count View</button></div></div>`;
             const tRow = document.getElementById('tabsRow'); tRow.innerHTML = '';
             ['All', ...new Set(chanVids.map(v => v.command))].forEach(cmd => { const btn = document.createElement('div'); btn.className = 'tab' + (cmd === 'All' ? ' active' : ''); btn.innerText = cmd.replace('!', ''); btn.onclick = () => { document.querySelectorAll('#tabsRow .tab').forEach(c => c.classList.remove('active')); btn.classList.add('active'); filterChannelContent(cid, cmd); }; tRow.appendChild(btn); });
             filterChannelContent(cid, 'All');
@@ -496,7 +520,6 @@
 
         function updateOdometer(number) {
             const container = document.getElementById('odometer'); const numStr = number.toLocaleString(); 
-            // Now reading the height directly from the CSS variable
             const h = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--odo-h'));
             
             if (container.children.length !== numStr.length) {
