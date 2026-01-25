@@ -223,6 +223,29 @@
         .hidden { display: none !important; }
         .channel-search-row { display: flex; gap: 50px; padding: 24px 0; border-bottom: 1px solid var(--yt-border); cursor: pointer; text-decoration: none; color: inherit; }
         .search-pfp { width: 136px; height: 136px; border-radius: 50%; }
+
+        /* --- MOBILE RESPONSIVE QUERIES --- */
+        @media (max-width: 768px) {
+            .header { padding: 8px 10px; }
+            .brand-text { display: none; } /* Hide text but keep logo "S" to save space */
+            .header-left { gap: 8px; flex: 0; }
+            .header-right { gap: 10px; }
+            .create-btn span { display: none; } /* Show icon only for create button */
+            .create-btn { padding: 0 10px !important; }
+            
+            .profile-header { flex-direction: column; text-align: center; gap: 15px; }
+            .profile-pfp-circle { width: 100px; height: 100px; }
+            .profile-info h1 { font-size: 24px; }
+            
+            .odometer-container { font-size: 18vw; height: 20vw; }
+            .odo-digit, .odo-reel span { height: 20vw; }
+            
+            .channel-search-row { flex-direction: column; gap: 15px; align-items: center; text-align: center; }
+            .search-pfp { width: 100px; height: 100px; }
+            
+            .video-grid { grid-template-columns: 1fr; } /* Single column for better viewing on phones */
+            .content { padding: 0 10px 10px 10px; }
+        }
     </style>
 </head>
 <body>
@@ -299,7 +322,6 @@
             const label = isDarkMode ? "Appearance: Dark" : "Appearance: Light";
             document.body.classList.toggle('light-mode', !isDarkMode);
             const btn = document.getElementById('themeToggleBtn');
-            // REMOVED: <span>›</span>
             if (btn) btn.innerHTML = `${iconStr}<span>${label}</span>`;
         }
 
@@ -333,7 +355,7 @@
                 const userEntry = Object.entries(usersData).find(([h, d]) => d.channelId === cid);
                 const user = userEntry ? userEntry[1] : { displayName: "User", profilePicture: defaultPfp };
                 const handle = userEntry ? userEntry[0] : "@unknown";
-                header.innerHTML = `<button class="create-btn" style="background:var(--yt-chip-bg); border:none; color:var(--yt-text); padding:0 16px; height:36px; border-radius:18px; cursor:pointer; font-weight:500; display:flex; align-items:center; gap:8px; margin-right:15px;" onclick="togglePublishModal()"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M14,13h-3v3H9v-3H6v-2h3V8h2v3h3V13z M17,6H3v12h14v-6.39l4,3.83V8.56l-4,3.83V6z M18,5v5.51L22,7v10l-4-3.51V19H2V5H18z"></path></svg>Create</button><img src="${user.profilePicture}" class="user-pfp-btn" onclick="toggleUserDropdown()" onerror="this.src='${defaultPfp}';">`;
+                header.innerHTML = `<button class="create-btn" style="background:var(--yt-chip-bg); border:none; color:var(--yt-text); padding:0 16px; height:36px; border-radius:18px; cursor:pointer; font-weight:500; display:flex; align-items:center; gap:8px; margin-right:15px;" onclick="togglePublishModal()"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M14,13h-3v3H9v-3H6v-2h3V8h2v3h3V13z M17,6H3v12h14v-6.39l4,3.83V8.56l-4,3.83V6z M18,5v5.51L22,7v10l-4-3.51V19H2V5H18z"></path></svg><span>Create</span></button><img src="${user.profilePicture}" class="user-pfp-btn" onclick="toggleUserDropdown()" onerror="this.src='${defaultPfp}';">`;
                 dropContent.innerHTML = `<div class="dropdown-header"><img src="${user.profilePicture}" onerror="this.src='${defaultPfp}';"><div class="dropdown-user-info"><h4 style="margin:0">${user.displayName}</h4><p style="margin:2px 0">${handle}</p><a href="#" style="color:var(--yt-blue); text-decoration:none; font-size:14px;" onclick="openChannel('${cid}'); toggleUserDropdown(); return false;">View your channel</a></div></div>`;
                 document.getElementById('modalLoggedOut').classList.add('hidden'); document.getElementById('modalLoggedIn').classList.remove('hidden');
             } else {
@@ -473,7 +495,8 @@
         function copyAuthCode() { navigator.clipboard.writeText(document.getElementById('authCodeDisp').innerText); alert("Copied!"); }
 
         function updateOdometer(number) {
-            const container = document.getElementById('odometer'); const numStr = number.toLocaleString(); const h = 140;
+            const container = document.getElementById('odometer'); const numStr = number.toLocaleString(); 
+            const h = window.innerWidth <= 768 ? (window.innerWidth * 0.20) : 140; // Sync with CSS height
             if (container.children.length !== numStr.length) {
                 container.innerHTML = ''; digitState.length = 0;
                 [...numStr].forEach((char, i) => {
